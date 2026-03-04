@@ -1,0 +1,13 @@
+Resumo da nossa Stack Definitiva até aqui:
+Backend: Python + FastAPI (Assíncrono)
+
+Banco de Dados: PostgreSQL (Relacional robusto para concorrência)
+
+ORM: SQLAlchemy 2.0 + Pydantic V2 (Tipagem rigorosa, sem abstrações mágicas excessivas)
+
+Auth: Sessões com Redis (Foco em segurança e revogação imediata)
+
+Storage: S3 via Pre-signed URLs (Alívio de banda do servidor)
+
+A arquitetura base está tecnicamente sólida e pronta para defender-se do "fator ignorante".
+

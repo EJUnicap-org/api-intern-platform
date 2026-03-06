@@ -222,7 +222,7 @@ async def create_lead(
                 cargo=contact_data.cargo,
                 organization=new_org 
             )
-            new_org.contacts.append(new_contact)
+            #new_org.contacts.append(new_contact)
          
         db.add(new_org)
         await db.commit()

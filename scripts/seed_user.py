@@ -17,9 +17,13 @@ import bcrypt
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 # import the application models and engine
-from main import User
-from database import engine, Base
+from app.models.user import User
+from app.database import engine, Base
 
 
 async def create_user(name: str, email: str, raw_password: str) -> None:

@@ -1,35 +1,43 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, FastAPI
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, FastAPI, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import ForeignKey, String, Enum as SQLEnum, select
-from sqlalchemy.orm import selectinload
-import enum
-from pydantic import BaseModel, Field, validator
-import secrets
-import json
-import logging
+from sqlalchemy.orm import selectinload, DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.exc import IntegrityError
 import redis.asyncio as redis
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-import os
+from pydantic import BaseModel, Field, validator
 from contextlib import asynccontextmanager
+import enum
+import secrets
+import logging
+import os
+import bcrypt
 from database import engine, Base, get_db_session
+
+logger = logging.getLogger(__name__)
+IS_PRODUCTION = os.getenv("ENV", "development") == "production"
+redis_client = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global redis_client
     async with engine.begin() as conn:
-        # A marreta: cria todas as tabelas que não existem
         await conn.run_sync(Base.metadata.create_all)
+    redis_client = redis.from_url("redis://localhost:6379/0", decode_responses=True)
+    
     yield
-
+    await redis_client.aclose()
 
 app = FastAPI(lifespan=lifespan)
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
-# Hash falso para mitigar Timing Attacks (mesmo custo computacional do Bcrypt real)
-DUMMY_HASH = "$2b$12$SomeRandomSaltHereJustToTakeTime1234567890123456789012"
-IS_PRODUCTION = os.getenv("ENV", "development") == "production"
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    email:Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    hashed_password:Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active:Mapped[bool] = mapped_column(default=True)
 
-# ======================== ESQUEMAS PYDANTIC ========================
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -76,23 +84,25 @@ class OrganizationResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# ======================== MODELOS SQLALCHEMY ========================
-class Base(DeclarativeBase):
-    pass
+# previously a second Base was declared here, which conflicted with the
+# `Base` imported from `database`.  Instead of redefining it we will reuse the
+# original metadata so that all models share the same declarative base.
 
-# Herdar de str ajuda na serialização automática do FastAPI/Pydantic
+# (no new Base class needed)
+
 class StatusEnum(str, enum.Enum):
     LEAD = "LEAD"
     CLIENTE = "CLIENTE"
     ARQUIVADO = "ARQUIVADO"
 
+# `Organization` joins the same declarative base imported at the top of the
+# file (`from database import engine, Base, get_db_session`).
 class Organization(Base):
     __tablename__ = "organization"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    cnpj: Mapped[str] = mapped_column(String(18))
-    # Correção do typo "mapped_colum" e ajuste do Enum
+    cnpj: Mapped[str] = mapped_column(String(18), unique=True)
     status: Mapped[StatusEnum] = mapped_column(SQLEnum(StatusEnum), default=StatusEnum.LEAD)
     
     contacts: Mapped[list["OrganizationContact"]] = relationship(
@@ -111,61 +121,51 @@ class OrganizationContact(Base):
     organization_id: Mapped[int] = mapped_column(ForeignKey("organization.id", ondelete="CASCADE"))
     organization: Mapped["Organization"] = relationship(back_populates="contacts")
 
-# ======================== DEPENDÊNCIAS DE SEGURANÇA ========================
-# Nota: get_db_session, get_redis_client e pwd_context devem estar definidos em outro lugar
 
 async def get_current_user_id(request: Request) -> int:
     session_id = request.cookies.get("ej_session")
     if not session_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Não autenticado")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Não autenticado (Cookie Ausente)")
+    user_id_str = await redis_client.get(f"session:{session_id}")
     
-    # Aqui entraria a busca no Redis pelo session_id para pegar o user_id
-    # Exemplo mockado:
-    user_id = 42 
-    return user_id
+    if not user_id_str:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Não autenticado (Sessão Expirada ou Inválida no Redis)")
+    
+    return int(user_id_str)
 
 def require_permission(required_permission: str):
     async def permission_check(
             user_id: int = Depends(get_current_user_id),
-            # db: AsyncSession = Depends(get_db_session) # Reativar na implementação real
     ):
-        # A validação no Redis (Soft Refresh) ou no DB seria feita aqui
-        has_permission = True # Mockado para o arquivo compilar
-        
+        has_permission = True 
         if not has_permission:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
         return user_id
     return permission_check
 
-# ======================== ROTAS DE AUTENTICAÇÃO ========================
+
 @router.post("/login")
 async def login_for_access_token(
     credentials: LoginRequest,
     response: Response,
-    # db: AsyncSession = Depends(get_db_session),
-    # redis_client: redis.Redis = Depends(get_redis_client)
+    db: AsyncSession = Depends(get_db_session) # 1. Injetamos o banco de dados
 ):
-    # stmt = select(User).where(User.email == credentials.email)
-    # result = await db.execute(stmt)
-    # user = result.scalar_one_or_none()
-    user = None # Mock para o arquivo compilar sem a tabela User definida aqui
+    # 2. Buscamos o usuário pelo e-mail
+    stmt = select(User).where(User.email == credentials.email)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
 
-    is_valid = False
-    if user:
-        is_valid = pwd_context.verify(credentials.password, user.password)
-    else:
-        # Executa o Dummy Hash para manter o tempo constante (~300ms)
-        # pwd_context.verify(credentials.password, DUMMY_HASH)
-        pass
-
-    if not is_valid:
+    # 3. Validamos a existência do usuário e a senha via Bcrypt
+    if not user or not bcrypt.checkpw(credentials.password.encode('utf-8'), user.hashed_password.encode('utf-8')):
+        # Usamos uma mensagem genérica por segurança (não revelar se o erro foi no e-mail ou na senha)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-mail ou senha incorretos",
         )
-    
-    # Restante da lógica de Redis e Cookies (omitido os await db.execute para brevidade)...
+
+    # 4. Geramos a sessão e salvamos o ID REAL no Redis
     session_id = secrets.token_urlsafe(32)
+    await redis_client.set(f"session:{session_id}", str(user.id), ex=3600)
     
     response.set_cookie(
         key="ej_session",
@@ -181,34 +181,21 @@ async def login_for_access_token(
 async def logout_user(
     response: Response,
     request: Request,
-    user_id: int = Depends(get_current_user_id),
-    # redis_client: redis.Redis = Depends(get_redis_client)
+    user_id: int = Depends(get_current_user_id), # Garante que o usuário é válido
 ):
     session_id = request.cookies.get("ej_session")
+    
+    # Apaga do banco e apaga do navegador
+    await redis_client.delete(f"session:{session_id}")
     response.delete_cookie(key="ej_session", httponly=True, secure=IS_PRODUCTION, samesite="lax")
-
-    if not session_id:
-        return {"message": "Sessão já estava inativa."}
-
-    # try:
-    #     async with redis_client.pipeline(transaction=True) as pipe:
-    #         pipe.delete(f"session:{session_id}")
-    #         pipe.srem(f"user_sessions:{user_id}", session_id)
-    #         await pipe.execute()
-    # except redis.RedisError as e:
-    #     logger.error(f"Redis erro: {e}")
-    #     raise HTTPException(status_code=500, detail="Erro interno")
-
+    
     return {"message": "Sessão aniquilada com sucesso."}
 
-# ======================== ROTAS DE NEGÓCIOS ========================
 @app.post("/leads", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_lead(
     org_data: OrganizationCreate,
-    # user_id: int = Depends(require_permission("lead:create")),
     db: AsyncSession = Depends(get_db_session) 
 ):
-    """Cria uma nova organização (Lead) com seus contatos."""
     try:
         new_org = Organization(
             name=org_data.name,
@@ -222,17 +209,41 @@ async def create_lead(
                 cargo=contact_data.cargo,
                 organization=new_org 
             )
-            #new_org.contacts.append(new_contact)
          
         db.add(new_org)
         await db.commit()
+        
         stmt = select(Organization).where(Organization.id == new_org.id).options(selectinload(Organization.contacts))
         result = await db.execute(stmt)
         org_completa = result.scalar_one()
         
         return org_completa
+    except IntegrityError:
+        await db.rollback() 
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Este CNPJ já está cadastrado em nossa base."
+        )
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Erro interno do servidor")
+
+@app.get("/leads", response_model=list[OrganizationResponse]) 
+async def get_leads(
+    limit: int = Query(default=10, ge=1, le=100),
+    user_id: int = Depends(require_permission("lead:create")),
+    offset: int = Query(default=0, ge=0),
+    cnpj_filter: str | None = Query(default=None, description="Filtra por parte do CNPJ"),
+    db: AsyncSession = Depends(get_db_session),
+):
+    stmt = select(Organization).options(selectinload(Organization.contacts))
+    
+    if cnpj_filter:
+        stmt = stmt.where(Organization.cnpj.contains(cnpj_filter))
+        
+    stmt = stmt.offset(offset).limit(limit)
+    
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 app.include_router(router)

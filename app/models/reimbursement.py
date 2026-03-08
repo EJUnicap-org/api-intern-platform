@@ -12,6 +12,7 @@ class StatusRefundEnum(str, enum.Enum):
     APPROVED = "APROVADO"
     DENIED = "REJEITADO"
     AWAITING = "AGUARDANDO"
+    CLOSED = "FINALIZADO"
 
 class TypeRefundEnum(str, enum.Enum):
     FUEL = "COMBUSTIVEL"

@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, ConfigDict
 
 from ..database import get_db_session
-from ..utils.security import require_permission
+from ..utils.security import require_role 
+from ..models.user import User, RoleEnum   
 from ..services.user_service import UserService
 from ..schemas.user import UserResponse
 
@@ -17,8 +18,7 @@ class UserWorkloadResponse(BaseModel):
 
 @router.get("/workload", response_model=list[UserWorkloadResponse])
 async def get_team_workload(
-    # Apenas gerentes podem ver a carga de trabalho de todos
-    user_id: int = Depends(require_permission("team:view_workload")),
+    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])),
     db: AsyncSession = Depends(get_db_session),
 ):
     """

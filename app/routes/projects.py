@@ -60,3 +60,47 @@ async def list_projects(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao recuperar projetos."
         )
+
+
+@router.get("/{project_id}", response_model=ProjectResponse)
+async def get_project(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Retorna os detalhes de um projeto específico pelo ID.
+    """
+    try:
+        # Consulta o banco de dados filtrando pelo ID e garantindo o carregamento dos membros
+        stmt = select(Project).options(selectinload(Project.members)).where(Project.id == project_id)
+        result = await db.execute(stmt)
+        project = result.scalars().first()
+
+        # Retorna erro 404 explícito caso o projeto não seja encontrado
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Projeto não encontrado."
+            )
+            
+         # Validação de autorização OBRIGATÓRIA contra IDOR
+        if current_user.role != "MANAGER":
+            is_member = any(member.id == current_user.id for member in project.members)
+            if not is_member:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Você não tem permissão para visualizar este projeto."
+                )
+
+        return project
+
+    except HTTPException:
+        # Repassa exceções HTTP (como o 404 ou 403) sem alterá-las
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao buscar projeto {project_id} para user_id={current_user.id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao buscar o projeto."
+        )

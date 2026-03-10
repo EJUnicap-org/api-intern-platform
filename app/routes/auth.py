@@ -7,7 +7,7 @@ from ..utils.security import get_current_user
 from ..services.auth_service import login_user, logout_user
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 class LoginRequest(BaseModel):
     email: str

@@ -1,12 +1,15 @@
 import enum
 from decimal import Decimal
 from datetime import datetime
+from typing import TYPE_CHECKING
 from sqlalchemy import String, Enum as SQLEnum, ForeignKey, Numeric ,func, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 from ..database import Base
-from .user import User
+
+if TYPE_CHECKING:
+    from .user import User
 
 class StatusRefundEnum(str, enum.Enum):
     APPROVED = "APROVADO"

@@ -3,7 +3,7 @@ Modelo de Registro de Ponto (ClockIn).
 Regra de Negócio: Puramente Administrativo (RH).
 Não possui vínculo com Projetos (Costing).
 """
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, DateTime, Enum
 from datetime import datetime
 import enum
@@ -20,6 +20,7 @@ class ClockIn(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    user: Mapped["User"] = relationship(back_populates="clockins")
     
     status: Mapped[StatusClockInEnum] = mapped_column(
         Enum(StatusClockInEnum), 

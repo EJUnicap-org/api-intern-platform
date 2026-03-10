@@ -18,3 +18,11 @@ AsyncSessionLocal = async_sessionmaker(
 async def get_db_session():
     async with AsyncSessionLocal() as session:
         yield session
+
+        
+from .models.user import User
+from .models.project import Project
+from .models.time_record import ClockIn
+from .models.reimbursement import Reimbursement
+from .models.organization import Organization
+

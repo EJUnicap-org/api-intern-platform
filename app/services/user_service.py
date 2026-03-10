@@ -2,6 +2,9 @@ import logging
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..utils.security import hash_password
+from ..schemas.user import UserCreate
+
 from ..models.user import User
 from ..models.project import Project, ProjectStatusEnum, project_members
 
@@ -32,15 +35,13 @@ class UserService:
             .outerjoin(project_members, User.id == project_members.c.user_id)
             .outerjoin(Project, and_(
                 project_members.c.project_id == Project.id,
-                Project.status == ProjectStatusEnum.EM_ANDAMENTO  # Assumindo status operacional
+                Project.status == ProjectStatusEnum.EM_ANDAMENTO
             ))
             .group_by(User.id)
-            .order_by(func.count(Project.id).desc()) # Os mais sobrecarregados primeiro
+            .order_by(func.count(Project.id).desc())
         )
 
         result = await db.execute(stmt)
-        
-        # O resultado vem como tuplas (User, count)
         workload_data = []
         for user, count in result:
             workload_data.append({
@@ -49,3 +50,29 @@ class UserService:
             })
             
         return workload_data
+    
+    @staticmethod
+    async def create_user(current_user: User, db: AsyncSession, user_data: UserCreate) -> User:
+        stmt = select(User).where(User.email == user_data.email)
+        result = await db.execute(stmt)
+        if result.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Um usuário com este e-mail já está cadastrado."
+            )
+
+        hashed_pw = await hash_password(user_data.password)
+
+        new_user = User(
+            name=user_data.name,
+            email=user_data.email,
+            password=hashed_pw,
+            role=user_data.role,
+            created_by=current_user.id
+        )
+        
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
+
+        return new_user

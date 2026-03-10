@@ -9,6 +9,7 @@ from app.routes.leads import router as leads_router
 from app.routes.time_records import router as time_records_router
 from app.routes.projects import router as projects_router
 from app.routes.users import router as users_router
+from app.routes.files import router as files_router
 
 logger = logging.getLogger(__name__)
 
@@ -34,3 +35,4 @@ app.include_router(leads_router)
 app.include_router(time_records_router)
 app.include_router(projects_router)
 app.include_router(users_router)
+app.include_router(files_router)

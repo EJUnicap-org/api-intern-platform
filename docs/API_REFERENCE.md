@@ -1,0 +1,99 @@
+# 📖 API Reference - EJ Unicap Platform
+
+## 🔐 Autenticação (JWT Stateless)
+A API utiliza o padrão OAuth2 com tokens JWT. O token deve ser enviado no cabeçalho HTTP de todas as rotas protegidas: `Authorization: Bearer <seu_token_aqui>`.
+
+### 1. Login
+* **POST** `/auth/login`
+* **Segurança:** Rota Pública
+* **Content-Type:** `application/x-www-form-urlencoded` (Padrão OAuth2)
+* **Body (Form):**
+    * `username` (string, required): E-mail do usuário.
+    * `password` (string, required): Senha.
+* **Response (200 OK):**
+    ```json
+    {
+      "access_token": "eyJhbGciOi...",
+      "token_type": "bearer"
+    }
+    ```
+* **Erros:** `401 Unauthorized` (Credenciais inválidas).
+
+### 2. Dados do Usuário Atual
+* **GET** `/auth/me`
+* **Segurança:** Requer Autenticação (Qualquer Role)
+* **Response (200 OK):** Retorna o objeto do usuário logado (id, name, email, role, is_active).
+
+---
+
+## 🏢 Organizações e Leads (RBAC Ativo)
+
+### 1. Criar Lead
+* **POST** `/organizations/leads`
+* **Segurança:** Apenas `ADMIN` ou `MANAGER` (Consultores recebem 403)
+* **Body (JSON):**
+    ```json
+    {
+      "name": "Empresa Teste",
+      "cnpj": "12.345.678/0001-90",
+      "status": "LEAD", 
+      "contacts": []
+    }
+    ```
+    *Nota: CNPJ aceita formatação ou apenas números. O Backend limpa automaticamente.*
+* **Response (201 Created):** Retorna a Organização com ID gerado.
+
+### 2. Listar Leads
+* **GET** `/organizations/leads`
+* **Segurança:** Apenas `ADMIN` ou `MANAGER`
+* **Query Params:**
+    * `limit` (int, default=10): Itens por página (1-100).
+    * `offset` (int, default=0): Pular itens.
+    * `cnpj_filter` (string, opcional): Busca parcial por CNPJ.
+* **Response (200 OK):** Array de Organizações.
+
+### 3. Atualizar Status do Lead
+* **PATCH** `/organizations/leads/{lead_id}/status`
+* **Segurança:** Apenas `ADMIN` ou `MANAGER`
+* **Body (JSON):**
+    ```json
+    {
+      "status": "CLIENTE" 
+    }
+    ```
+    *Status válidos: "LEAD", "CLIENTE", "ARQUIVADO".*
+* **Response (200 OK):** Organização atualizada.
+
+---
+
+## 🚀 Projetos
+
+### 1. Criar Projeto
+* **POST** `/projects/`
+* **Segurança:** Apenas `ADMIN` ou `MANAGER`
+* **Body (JSON):**
+    ```json
+    {
+      "title": "Sistema de Gestão",
+      "description": "Desenvolvimento de plataforma",
+      "organization_id": 1,
+      "deadline": "2026-12-31T23:59:59Z",
+      "member_ids": [2, 5, 8]
+    }
+    ```
+* **Response (201 Created):** Dados do projeto com os membros aninhados.
+* **Erros:** `400 Bad Request` (Se IDs de membros ou organização não existirem).
+
+### 2. Listar Projetos
+* **GET** `/projects/`
+* **Segurança:** Requer Autenticação
+* **Comportamento de Negócio:**
+    * `ADMIN`/`MANAGER`: Recebem a lista de TODOS os projetos da base.
+    * `CONSULTANT`: Recebem APENAS os projetos onde seu ID consta na lista de membros (Prevenção de IDOR).
+* **Response (200 OK):** Array de Projetos.
+
+### 3. Detalhes do Projeto
+* **GET** `/projects/{project_id}`
+* **Segurança:** Requer Autenticação
+* **Erros:** * `404 Not Found` (Projeto inexistente).
+    * `403 Forbidden` (Se um Consultor tentar acessar um projeto do qual não faz parte).

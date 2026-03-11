@@ -22,3 +22,7 @@ class ProjectResponse(BaseModel):
     deadline: datetime | None = Field(None, description="Prazo do projeto")
     members: list[UserResponse] = Field(..., description="Lista de membros alocados")
 
+
+class ProjectAllocationRequest(BaseModel):
+    member_ids: list[int] = Field(..., min_length=1)
+    

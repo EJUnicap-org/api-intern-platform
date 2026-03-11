@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db_session
 from ..utils.security import get_current_user, require_role
 from ..models.user import User, RoleEnum
-from ..schemas.projects import ProjectCreate, ProjectResponse
+from ..schemas.projects import ProjectCreate, ProjectResponse, ProjectAllocationRequest
 from ..services.project_service import ProjectService
 from ..models.project import Project
 
@@ -103,4 +103,31 @@ async def get_project(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar o projeto."
+        )
+    
+@router.post("/{project_id}/members", status_code=status.HTTP_200_OK)
+async def add_members_to_project(
+    project_id: int,
+    allocation_request: ProjectAllocationRequest,
+    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db_session),     
+):
+    """
+    Adiciona membros a um projeto existente.
+    """
+    try:
+        await ProjectService.add_members_to_project(
+            project_id, 
+            allocation_request.member_ids, 
+            current_user.id, 
+            db
+        )
+        return {"message": "Membros adicionados com sucesso."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao adicionar membros ao projeto {project_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao adicionar membros ao projeto."
         )

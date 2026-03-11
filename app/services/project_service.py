@@ -70,3 +70,22 @@ class ProjectService:
 
         logger.info(f"Projeto '{project_loaded.title}' criado com ID {project_loaded.id}")
         return project_loaded
+    
+    @staticmethod
+    async def add_members_to_project(project_id: int, member_ids: list[int], user_id: int, db: AsyncSession):
+        """
+        Adiciona membros a um projeto existente.
+        """
+        stmt = select(Project).where(Project.id == project_id).options(selectinload(Project.members))
+        result = await db.execute(stmt)
+        project = result.scalar_one_or_none()
+
+        if not project:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
+
+        if project.created_by != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Você não tem permissão para adicionar membros a este projeto")
+
+        unique_member_ids = set(member_ids)
+        stmt = select(User).where(User.id.in_(unique_member_ids))
+        

@@ -5,8 +5,8 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db_session
-from ..utils.security import get_current_user
-from ..models.user import User
+from ..utils.security import get_current_user, require_role
+from ..models.user import User, RoleEnum
 from ..schemas.projects import ProjectCreate, ProjectResponse
 from ..services.project_service import ProjectService
 from ..models.project import Project
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 @router.post("/", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(
     project_data: ProjectCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:
@@ -48,7 +48,7 @@ async def list_projects(
     try:
         stmt = select(Project).options(selectinload(Project.members))
 
-        if current_user.role != "MANAGER":
+        if current_user.role not in [RoleEnum.MANAGER, RoleEnum.ADMIN]:
             stmt = stmt.where(Project.members.any(User.id == current_user.id))
 
         result = await db.execute(stmt)
@@ -85,7 +85,7 @@ async def get_project(
             )
             
          # Validação de autorização OBRIGATÓRIA contra IDOR
-        if current_user.role != "MANAGER":
+        if current_user.role not in [RoleEnum.MANAGER, RoleEnum.ADMIN]:
             is_member = any(member.id == current_user.id for member in project.members)
             if not is_member:
                 raise HTTPException(

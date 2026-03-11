@@ -1,36 +1,43 @@
+from datetime import datetime, timedelta, timezone
+import jwt
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status, Response
 
 from ..models.user import User
-from ..utils.security import authenticate_user, redis_client
-from ..config import IS_PRODUCTION
-import secrets
+from ..utils.security import authenticate_user
+from ..config import SECRET_KEY 
 
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 
 
-async def login_user(email: str, password: str, response: Response, db: AsyncSession) -> dict:
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def login_user(email: str, password: str, db: AsyncSession) -> dict:
     user = await authenticate_user(email, password, db)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Credenciais inválidas",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    session_id = secrets.token_urlsafe(32)
-    await redis_client.set(f"session:{session_id}", str(user.id), ex=3600)
-    response.set_cookie(
-        key="ej_session",
-        value=session_id,
-        httponly=True,
-        secure=IS_PRODUCTION,
-        samesite="lax",
-        max_age=3600
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    access_token = create_access_token(
+        data={"sub": user.email, "role": user.role.value}, 
+        expires_delta=access_token_expires
     )
-    return {"message": "Login successful"}
 
+    return {"access_token": access_token, "token_type": "bearer"}
 
-async def logout_user(response: Response, request, user_id: int) -> dict:
-    session_id = request.cookies.get("ej_session")
-    response.delete_cookie(key="ej_session", httponly=True, secure=IS_PRODUCTION, samesite="lax")
-
-    if not session_id:
-        return {"message": "Sessão já estava inativa."}
-
-    await redis_client.delete(f"session:{session_id}")
-    return {"message": "Sessão aniquilada com sucesso."}
+async def logout_user() -> dict:
+    return {"message": "Para fazer logout, apague o token no cliente."}

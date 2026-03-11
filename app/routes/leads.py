@@ -16,7 +16,7 @@ router = APIRouter(prefix="/organizations", tags=["Orgs and Leads"])
 @router.post("/leads", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_lead_route(
     org_data: OrganizationCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])),
     db: AsyncSession = Depends(get_db_session)
 ):
     return await create_lead(org_data, db)

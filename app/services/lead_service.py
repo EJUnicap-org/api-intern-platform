@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db_session
+from ..schemas.organization import OrganizationUpdate
 from ..models.organization import Organization, OrganizationContact, StatusEnum
 
 
@@ -79,4 +80,23 @@ async def update_lead_status(lead_id: int, new_status: str, db: AsyncSession):
     # 2 e 3. Commita a transação (o add() é implícito) e ignora o refresh letal
     await db.commit()
 
+    return org
+
+async def update_organization(org_id: int, update_data: OrganizationUpdate, db: AsyncSession):
+    stmt = select(Organization).where(Organization.id == org_id).options(selectinload(Organization.contacts))
+    result = await db.execute(stmt)
+    org = result.scalar_one_or_none()
+
+    if not org:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organização não encontrada"
+        )
+
+    update_data_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_data_dict.items():
+        setattr(org, key, value)
+
+    await db.commit()
+    await db.refresh(org)
     return org

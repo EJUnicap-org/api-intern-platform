@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from app.database import engine, Base
@@ -12,7 +13,6 @@ from app.routes.users import router as users_router
 from app.routes.files import router as files_router
 
 logger = logging.getLogger(__name__)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +29,24 @@ async def lifespan(app: FastAPI):
     logger.info("Conexão com o Redis fechada.")
 
 app = FastAPI(lifespan=lifespan)
+
+app = FastAPI(lifespan=lifespan)
+
+# === CONFIGURAÇÃO DO CORS ===
+origins = [
+    "http://localhost:3000",      # Padrão React
+    "http://localhost:5173",      # Padrão Vite/Vue
+    # "https://ejunicap.com.br",  # dominio futuro
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# ===
 
 app.include_router(auth_router)
 app.include_router(leads_router)

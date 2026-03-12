@@ -119,7 +119,6 @@ async def add_members_to_project(
         await ProjectService.add_members_to_project(
             project_id, 
             allocation_request.member_ids, 
-            current_user.id, 
             db
         )
         return {"message": "Membros adicionados com sucesso."}

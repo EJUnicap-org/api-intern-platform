@@ -1,4 +1,5 @@
 import logging
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,20 +73,44 @@ class ProjectService:
         return project_loaded
     
     @staticmethod
-    async def add_members_to_project(project_id: int, member_ids: list[int], user_id: int, db: AsyncSession):
+    async def add_members_to_project(project_id: int, member_ids: list[int], db: AsyncSession):
         """
-        Adiciona membros a um projeto existente.
+        Adiciona novos membros a um projeto existente, ignorando duplicatas.
         """
-        stmt = select(Project).where(Project.id == project_id).options(selectinload(Project.members))
-        result = await db.execute(stmt)
-        project = result.scalar_one_or_none()
+        # 1. Buscar o Projeto e CARREGAR OS MEMBROS ATUAIS
+        stmt_proj = select(Project).where(Project.id == project_id).options(selectinload(Project.members))
+        result_proj = await db.execute(stmt_proj)
+        project = result_proj.scalar_one_or_none()
 
         if not project:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
 
-        if project.created_by != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Você não tem permissão para adicionar membros a este projeto")
-
+        # 2. Buscar os NOVOS usuários no banco (usando SETS para performance e dados únicos)
         unique_member_ids = set(member_ids)
-        stmt = select(User).where(User.id.in_(unique_member_ids))
+        stmt_users = select(User).where(User.id.in_(unique_member_ids), User.is_active == True)
+        result_users = await db.execute(stmt_users)
+        new_users = result_users.scalars().all()
+
+        if len(new_users) != len(unique_member_ids):
+            found_ids = {u.id for u in new_users}
+            missing = unique_member_ids - found_ids
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=f"Usuários não encontrados ou inativos: {list(missing)}"
+            )
+
+        existing_member_ids = {member.id for member in project.members}
         
+        users_added = 0
+        for user in new_users:
+            if user.id not in existing_member_ids:
+                project.members.append(user)
+                users_added += 1
+
+        if users_added == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Todos os usuários informados já são membros deste projeto."
+            )
+
+        await db.commit()

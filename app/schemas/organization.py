@@ -59,3 +59,17 @@ class StatusUpdate(BaseModel):
         if v.upper() not in valid_statuses:
             raise ValueError(f'status deve ser um de: {valid_statuses}')
         return v.upper()
+    
+class OrganizationUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=100)
+    cnpj: str | None = Field(None, min_length=14, max_length=18)
+
+    @validator('cnpj')
+    def validate_cnpj(cls, v):
+        if v is None:
+            return v 
+            
+        cnpj_clean = v.replace('.', '').replace('/', '').replace('-', '')
+        if not cnpj_clean.isdigit():
+            raise ValueError('CNPJ deve conter apenas números')
+        return cnpj_clean

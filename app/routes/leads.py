@@ -4,10 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db_session
 from ..utils.security import get_current_user, require_role
 from ..models.user import User, RoleEnum
-from ..services.lead_service import create_lead, get_leads, update_lead_status
+from ..services.lead_service import create_lead, get_leads, update_lead_status, update_organization
 from ..schemas.organization import (
     OrganizationCreate,
     OrganizationResponse,
+    OrganizationUpdate,
     StatusUpdate,
 )
 
@@ -45,3 +46,18 @@ async def update_lead_status_route(
     - **status_update**: JSON contendo o novo status (LEAD, CLIENTE ou ARQUIVADO)
     """
     return await update_lead_status(lead_id, status_update.status, db)
+
+@router.patch("/leads/{lead_id}", status_code=status.HTTP_200_OK)
+
+async def update_organization_route(
+    lead_id: int,
+    update_data: OrganizationUpdate = str | None,
+    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """
+    Atualiza os dados de uma organização.
+    - **lead_id**: ID da organização na URL
+    - **data_update**: JSON contendo os novos dados(Nome, CNPJ)
+    """
+    return await update_organization(lead_id, update_data, db)

@@ -40,17 +40,20 @@ class TimeRecordService:
         open_clockin = result.scalar_one_or_none()
 
         if open_clockin:
-            point_recife = open_clockin.start_time.astimezone(RECIFE_TZ)
+            if open_clockin.start_time.tzinfo is None:
+                start_time_utc = open_clockin.start_time.replace(tzinfo=timezone.utc)
+            else:
+                start_time_utc = open_clockin.start_time
+            point_recife = start_time_utc.astimezone(RECIFE_TZ)
             point_date = point_recife.date()
             
             if point_date < today_date:
-                open_clockin.end_time = open_clockin.start_time
+                open_clockin.end_time = now_utc
                 open_clockin.status = StatusClockInEnum.ANOMALY
                 
-                await db.flush()
                 logger.warning(
                     f"Ponto aberto detectado para user_id={user_id} desde {point_date}. "
-                    f"Marcado como ANOMALY (0 horas). Novo ponto criado para hoje."
+                    f"Fechado com ANOMALY (ignorado no total de horas). Novo ponto criado para hoje."
                 )
                 
                 new_clockin = ClockIn(

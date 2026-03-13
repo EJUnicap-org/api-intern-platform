@@ -97,3 +97,10 @@ A API utiliza o padrão OAuth2 com tokens JWT. O token deve ser enviado no cabe�
 * **Segurança:** Requer Autenticação
 * **Erros:** * `404 Not Found` (Projeto inexistente).
     * `403 Forbidden` (Se um Consultor tentar acessar um projeto do qual não faz parte).
+
+## 📂 Arquivos
+* **POST** `/files/upload-url`
+* **Segurança:** Requer Autenticação
+* **Erros:** **(verificar LOG DO SERVIDOR)** 
+    * `500 Internal Error` (Vazamento de credencias do R2 Bucket ou falta de credencias **verificar log**)
+    * `500 Internal Error` (Erro na geração de assinatura de url-pressined pelo R2 ou falaha no estabelecimanto de conexão segura com o servidor)

@@ -54,6 +54,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(leads_router)
 app.include_router(time_records_router)
+app.include_router(reimbursement_router)
 app.include_router(projects_router)
 app.include_router(users_router)
 app.include_router(files_router)

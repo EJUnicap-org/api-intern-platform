@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
@@ -11,8 +12,12 @@ from app.routes.time_records import router as time_records_router
 from app.routes.projects import router as projects_router
 from app.routes.users import router as users_router
 from app.routes.files import router as files_router
+from app.routes.reimbursement import router as reimbursement_router
+
+# include_router(reimbursement_router)
 
 logger = logging.getLogger(__name__)
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,8 +32,6 @@ async def lifespan(app: FastAPI):
     yield
     await redis_client.aclose()
     logger.info("Conexão com o Redis fechada.")
-
-app = FastAPI(lifespan=lifespan)
 
 app = FastAPI(lifespan=lifespan)
 

@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
+logger = logging.getLogger(__name__)
+load_dotenv()
+
 from app.database import engine, Base
 from app.utils.redis_client import redis_client
 from app.routes.auth import router as auth_router
@@ -13,11 +16,6 @@ from app.routes.projects import router as projects_router
 from app.routes.users import router as users_router
 from app.routes.files import router as files_router
 from app.routes.reimbursement import router as reimbursement_router
-
-# include_router(reimbursement_router)
-
-logger = logging.getLogger(__name__)
-load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

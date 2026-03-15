@@ -5,7 +5,7 @@ import os
 IS_PRODUCTION = os.getenv("ENV", "development") == "production"
 
 # Database
-DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/ej_unicap_db"
+DATABASE_URL = os.getenv("DATABASE_URL") #"postgresql+asyncpg://postgres:root@localhost:5432/ej_unicap_db"
 
 # Redis
 REDIS_URL = "redis://localhost:6379/0"

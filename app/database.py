@@ -3,15 +3,13 @@ from sqlalchemy.orm import declarative_base
 
 from .config import DATABASE_URL
 
-# O chassi fundamental
 Base = declarative_base()
 
-# A conexão assíncrona (Substitua a senha se necessário)
-engine = create_async_engine(DATABASE_URL, echo=False)
+engine = create_async_engine(DATABASE_URL, echo=False, pool_size = 5, max_overflow = 0, pool_recycle = 3600)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine, 
-    class_=AsyncSession, 
+    class_=AsyncSession,
     expire_on_commit=False
 )
 

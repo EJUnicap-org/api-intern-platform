@@ -1,4 +1,4 @@
-import logging
+import logging, asyncio
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db_session
 from ..utils.security import get_current_user, require_role
 from ..models.user import User, RoleEnum
+from ..schemas.riskpath import TaskInput
 from ..schemas.projects import ProjectCreate, ProjectResponse, ProjectAllocationRequest
+from ..services.pert_service import calc_grafo_pert
 from ..services.project_service import ProjectService
 from ..models.project import Project
 
@@ -130,3 +132,29 @@ async def add_members_to_project(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao adicionar membros ao projeto."
         )
+        
+@router.post("/diagnostic")
+async def endpoint_calcular_projeto(payload: TaskInput):
+    """
+    Recebe as tarefas, valida a matemática (O <= M <= P) via Pydantic,
+    e despacha o cálculo pesado de grafos para uma thread secundária.
+    """
+    if not payload.tasks:
+        raise HTTPException(status_code=400, detail="O dicionário de tarefas está vazio.")
+    
+    try:
+        # CONFRONTO CONSTRUTIVO: Aqui nós liberamos o worker do Render!
+        # O Event Loop não é bloqueado enquanto o NetworkX faz a matemática.
+        resultado_json = await asyncio.to_thread(calc_grafo_pert, payload.tasks)
+        
+        return {
+            "status": "sucesso", 
+            "dados": resultado_json
+        }
+        
+    except ValueError as e:
+        # Captura os erros de negócio (ex: dependência circular, predecessora fantasma)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        # Falha catastrófica não prevista
+        raise HTTPException(status_code=500, detail=f"Erro interno do servidor ao processar o motor PERT: {str(e)}")

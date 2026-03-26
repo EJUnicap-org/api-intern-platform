@@ -1,0 +1,2 @@
+DATABASE_URL = postgresql+asyncpg://postgres:root@localhost:5432/ejunicap_db
+

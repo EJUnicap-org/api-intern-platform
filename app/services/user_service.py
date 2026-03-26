@@ -66,7 +66,7 @@ class UserService:
         new_user = User(
             name=user_data.name,
             email=user_data.email,
-            password=hashed_pw,
+            hashed_password=hashed_pw,
             role=user_data.role,
             created_by=current_user.id
         )

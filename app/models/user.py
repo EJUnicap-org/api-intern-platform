@@ -24,3 +24,4 @@ class User(Base):
     projects: Mapped[list["Project"]] = relationship(
         secondary="project_members", back_populates="members"
     )
+    created_by: Mapped[int | None]

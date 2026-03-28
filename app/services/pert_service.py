@@ -85,12 +85,39 @@ def calc_grafo_pert(data_tasks: Dict[str, Any]) -> Dict[str, Any]:
     default_diversion = math.sqrt(variance_project)
     secure_time = project_time + default_diversion
     
+    project_buffer = round(project_time / 2, 2)
+    tempo_agressivo = round(project_time - project_buffer, 2)
+    prazo_protegido = round(tempo_agressivo + project_buffer, 2)
+    
+    feeding_buffers = {}
+    tarefas_cortadas = {}
+    
+    for id_task in data_tasks.keys():
+        tempo_original = result_task[id_task]['Te']
+        tempo_cortado  = round(tempo_original / 2, 2)
+        tarefas_cortadas[id_task] = {"tempo_ccpm": tempo_cortado}
+        
+        if id_task not in risk_path:
+            feeding_buffers[id_task] = tempo_cortado
+
+    
     return {
-        "metricas_globais": {
-            "tempo_enxuto_horas": round(project_time, 2),
-            "margem_seguranca_horas": round(default_diversion, 2),
-            "prazo_final_seguro_horas": math.ceil(secure_time)
+        "pert_classico": {
+            "metricas_globais": {
+                "tempo_enxuto_horas": round(project_time, 2),
+                "margem_seguranca_horas": round(default_diversion, 2),
+                "prazo_final_seguro_horas": math.ceil(secure_time)
+            },
+            "caminho_critico": risk_path,
+            "detalhes_tarefas": result_task
         },
-        "caminho_critico": risk_path,
-        "detalhes_tarefas": result_task
+        "corrente_critica": {
+            "metricas_ccpm": {
+                "tempo_agressivo_projeto_horas": tempo_agressivo,
+                "project_buffer_horas": project_buffer,
+                "prazo_final_protegido_horas": prazo_protegido
+            },
+            "feeding_buffers": feeding_buffers,
+            "tarefas_cortadas": tarefas_cortadas
+        }
     }

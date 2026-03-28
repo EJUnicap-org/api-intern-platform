@@ -26,48 +26,69 @@ class PdfService:
         pdf = PDF()
         pdf.add_page()
         
+        # Isolamento de Escopos
+        pert_classico = pert_data.get("pert_classico", {})
+        ccpm = pert_data.get("corrente_critica", {})
+        
         # 1. Título do Projeto
         pdf.set_font("helvetica", "B", 12)
         pdf.cell(0, 10, f"Projeto: {project_title}", new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(5)
+        pdf.ln(2)
         
-        # 2. Métricas Globais
-        metricas = pert_data.get("metricas_globais", {})
-        pdf.set_font("helvetica", "", 11)
-        pdf.cell(0, 8, f"Tempo Enxuto (Caminho Crítico): {metricas.get('tempo_enxuto_horas', 0)} horas", new_x="LMARGIN", new_y="NEXT")
-        pdf.cell(0, 8, f"Margem de Segurança (Variância): {metricas.get('margem_seguranca_horas', 0)} horas", new_x="LMARGIN", new_y="NEXT")
-        pdf.cell(0, 8, f"Prazo Final Seguro: {metricas.get('prazo_final_seguro_horas', 0)} horas", new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(10)
-        
-        # 3. Caminho Crítico Destacado
-        critico_str = " -> ".join(pert_data.get("caminho_critico", []))
+        # 2. Visão PERT (Conservadora)
+        metricas_pert = pert_classico.get("metricas_globais", {})
         pdf.set_font("helvetica", "B", 11)
-        pdf.cell(0, 8, f"Gargalo do Projeto: {critico_str}", new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(10)
-        
-        # 4. Tabela de Tarefas - Cabeçalho
-        pdf.set_font("helvetica", "B", 10)
-        pdf.cell(15, 10, "ID", border=1, align="C")
-        pdf.cell(85, 10, "Descrição", border=1, align="C")
-        pdf.cell(30, 10, "Duração (h)", border=1, align="C")
-        pdf.cell(30, 10, "Folga (h)", border=1, align="C")
-        pdf.cell(30, 10, "Status", border=1, align="C", new_x="LMARGIN", new_y="NEXT")
-        
-        # 5. Tabela de Tarefas - Linhas dinâmicas
+        pdf.cell(0, 8, "Visão PERT Clássico (Estatística)", new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("helvetica", "", 10)
-        detalhes = pert_data.get("detalhes_tarefas", {})
+        pdf.cell(0, 6, f"Tempo Enxuto (Gargalo): {metricas_pert.get('tempo_enxuto_horas', 0)}h", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, f"Prazo Final Seguro (Com Margem): {metricas_pert.get('prazo_final_seguro_horas', 0)}h", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+        
+        # 3. Visão Corrente Crítica (Agressiva)
+        metricas_ccpm = ccpm.get("metricas_ccpm", {})
+        pdf.set_font("helvetica", "B", 11)
+        pdf.cell(0, 8, "Visão Corrente Crítica (Gestão por Pulmão)", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("helvetica", "", 10)
+        pdf.cell(0, 6, f"Meta Agressiva de Entrega: {metricas_ccpm.get('tempo_agressivo_projeto_horas', 0)}h", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, f"Pulmão de Projeto (Buffer): {metricas_ccpm.get('project_buffer_horas', 0)}h", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(6)
+        
+        # 4. Caminho Crítico
+        critico_str = " -> ".join(pert_classico.get("caminho_critico", []))
+        pdf.set_font("helvetica", "B", 10)
+        pdf.cell(0, 8, f"Cadeia Principal: {critico_str}", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+        
+        # 5. Tabela de Tarefas - Cabeçalho
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(10, 8, "ID", border=1, align="C")
+        pdf.cell(70, 8, "Descrição", border=1, align="C")
+        pdf.cell(25, 8, "Tempo PERT", border=1, align="C")
+        pdf.cell(25, 8, "Tempo CCPM", border=1, align="C")
+        pdf.cell(30, 8, "Feeding Buffer", border=1, align="C")
+        pdf.cell(30, 8, "Status", border=1, align="C", new_x="LMARGIN", new_y="NEXT")
+        
+        # 6. Tabela de Tarefas - Linhas
+        pdf.set_font("helvetica", "", 9)
+        detalhes = pert_classico.get("detalhes_tarefas", {})
+        feeding_buffers = ccpm.get("feeding_buffers", {})
+        tarefas_cortadas = ccpm.get("tarefas_cortadas", {})
         
         for task_id, info in detalhes.items():
-            desc = str(info.get("desc", ""))[:40] 
-            duracao = str(info.get("Te", 0))
-            folga = str(info.get("folga_horas", 0))
-            status = "GARGALO" if info.get("is_critico") else "OK"
+            desc = str(info.get("desc", ""))[:35] 
+            tempo_pert = f"{info.get('Te', 0)}h"
+            tempo_ccpm = f"{tarefas_cortadas.get(task_id, {}).get('tempo_ccpm', 0)}h"
             
-            pdf.cell(15, 10, task_id, border=1, align="C")
-            pdf.cell(85, 10, desc, border=1, align="L")
-            pdf.cell(30, 10, duracao, border=1, align="C")
-            pdf.cell(30, 10, folga, border=1, align="C")
-            pdf.cell(30, 10, status, border=1, align="C", new_x="LMARGIN", new_y="NEXT")
+            # Se a tarefa tem Feeding Buffer, nós mostramos. Se não, é o Gargalo.
+            fb_val = feeding_buffers.get(task_id)
+            buffer_str = f"{fb_val}h" if fb_val else "-"
+            status = "CADEIA CRÍTICA" if info.get("is_critico") else "ALIMENTADORA"
+            
+            pdf.cell(10, 8, task_id, border=1, align="C")
+            pdf.cell(70, 8, desc, border=1, align="L")
+            pdf.cell(25, 8, tempo_pert, border=1, align="C")
+            pdf.cell(25, 8, tempo_ccpm, border=1, align="C")
+            pdf.cell(30, 8, buffer_str, border=1, align="C")
+            pdf.cell(30, 8, status, border=1, align="C", new_x="LMARGIN", new_y="NEXT")
         
-        # O FPDF2 permite retornar o buffer diretamente como bytearray
         return bytes(pdf.output())

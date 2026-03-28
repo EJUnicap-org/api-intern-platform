@@ -2,7 +2,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 from ..models.time_record import StatusClockInEnum
 
-
 class ClockInResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     

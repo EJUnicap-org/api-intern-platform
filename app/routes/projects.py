@@ -1,16 +1,22 @@
 import logging, asyncio
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status, Response
+from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db_session
+
+from ..schemas.pert import ProjetoInput
 from ..utils.security import get_current_user, require_role
 from ..models.user import User, RoleEnum
+
 from ..schemas.riskpath import TaskInput
 from ..schemas.projects import ProjectCreate, ProjectResponse, ProjectAllocationRequest
+
 from ..services.pert_service import calc_grafo_pert
 from ..services.project_service import ProjectService
+from ..services.pdf_service import PdfService
+
 from ..models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -134,7 +140,7 @@ async def add_members_to_project(
         )
         
 @router.post("/diagnostic")
-async def endpoint_calcular_projeto(payload: TaskInput):
+async def endpoint_calcular_projeto(payload: ProjetoInput, current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])), db: AsyncSession = Depends(get_db_session)):
     """
     Recebe as tarefas, valida a matemática (O <= M <= P) via Pydantic,
     e despacha o cálculo pesado de grafos para uma thread secundária.
@@ -158,3 +164,117 @@ async def endpoint_calcular_projeto(payload: TaskInput):
     except Exception as e:
         # Falha catastrófica não prevista
         raise HTTPException(status_code=500, detail=f"Erro interno do servidor ao processar o motor PERT: {str(e)}")
+    
+@router.patch("/{project_id}/diagnostic", status_code=status.HTTP_200_OK)
+async def endpoint_update_pert(
+    project_id: int,
+    payload: ProjetoInput,
+    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db_session),
+):
+    if not payload.tasks:
+        raise HTTPException(status_code=400, detail="O dicionário de tarefas está vazio.")
+    
+    try:
+        resultado_pert = await asyncio.to_thread(calc_grafo_pert, payload.tasks)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    stmt = (
+        update(Project)
+        .where(Project.id == project_id)
+        .values(pert_diagnostic=resultado_pert)
+        .returning(Project.id)
+    )
+    
+    result = await db.execute(stmt)
+    updated_id = result.scalar_one_or_none()
+    
+    if not updated_id:
+        raise HTTPException(status_code=404, detail="Projeto não encontrado na base de dados.")
+        
+    await db.commit()
+    
+    return {
+        "status": "sucesso",
+        "mensagem": f"Diagnóstico PERT calculado e salvo com sucesso no projeto {project_id}.",
+        "dados": resultado_pert
+    }
+    
+@router.get("/{project_id}/diagnostic", status_code=status.HTTP_200_OK)
+async def endpoint_get_pert(
+    project_id: int,
+    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Retorna exclusivamente o diagnóstico PERT de um projeto (Acesso restrito a Gestores).
+    """
+    stmt = select(Project).where(Project.id == project_id)
+    result = await db.execute(stmt)
+    projeto = result.scalar_one_or_none()
+
+    if not projeto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Projeto não encontrado."
+        )
+        
+    if not projeto.pert_diagnostic:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="O diagnóstico PERT ainda não foi calculado para este projeto."
+        )
+
+    return {
+        "project_id": projeto.id,
+        "pert_diagnostic": projeto.pert_diagnostic
+    }
+    
+@router.get("/{project_id}/diagnostic/pdf", status_code=status.HTTP_200_OK)
+async def endpoint_generate_pert_pdf(
+    project_id: int,
+    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Gera e retorna o arquivo PDF com o diagnóstico PERT do projeto."""
+    
+    # 1. Busca os dados no banco
+    stmt = select(Project).where(Project.id == project_id)
+    result = await db.execute(stmt)
+    projeto = result.scalar_one_or_none()
+    
+    # 2. Validações precisas
+    if not projeto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Projeto não encontrado na base de dados."
+        )
+    
+    if not projeto.pert_diagnostic:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="O diagnóstico PERT ainda não foi calculado para este projeto. Rode a análise matemática primeiro."
+        )
+    
+    # 3. Extração (cuidado com os nomes das variáveis)
+    project_title = projeto.title
+    diagnostic_pert = projeto.pert_diagnostic
+    
+    # 4. Orquestração Assíncrona (Protegendo o Event Loop)
+    pdf_bytes = await asyncio.to_thread(
+        PdfService.build_pert_pdf, 
+        project_title, 
+        diagnostic_pert
+    )
+    
+    # 5. O Empacotamento HTTP
+    headers = {
+        "Content-Disposition": f'attachment; filename="diagnostico_pert_projeto_{project_id}.pdf"'
+    }
+    
+    return Response(
+        content=pdf_bytes, 
+        media_type="application/pdf", 
+        headers=headers
+    )

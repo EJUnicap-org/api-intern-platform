@@ -1,6 +1,7 @@
 import enum
 from datetime import datetime
 from sqlalchemy import String, Enum as SQLEnum, ForeignKey, Table, Column, DateTime, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
@@ -33,13 +34,12 @@ class Project(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=func.now()
     )
-    # Prazo nasce nulo, não com a data atual. É definido pelo gerente.
+    
     deadline: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
     # FK para a Organização (Cliente do Lead)
-    # Assumindo que a tabela se chama 'organizations' no plural. Ajuste se for singular.
     organization_id: Mapped[int | None] = mapped_column(ForeignKey("organization.id"))
     organization: Mapped["Organization"] = relationship(back_populates="projects")
 
@@ -47,3 +47,5 @@ class Project(Base):
     members: Mapped[list["User"]] = relationship(
         secondary=project_members, back_populates="projects"
     )
+    
+    pert_diagnostic: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

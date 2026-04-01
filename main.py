@@ -37,7 +37,7 @@ app = FastAPI(lifespan=lifespan)
 origins = [
     "http://localhost:3000",      # Padrão React
     "http://localhost:5173",      # Padrão Vite/Vue
-    # "https://ejunicap.com.br",  # dominio futuro
+    "https://ej-unicap.vercel.app/",  # dominio 
 ]
 
 app.add_middleware(

@@ -36,7 +36,7 @@ async def seed_first_admin():
             return
 
         logger.info(f"Criando o administrador: {target_email}")
-        hashed_pw = await hash_password("070107Rossini135*")
+        hashed_pw = await hash_password("Girafa2026@")
         
         admin_user = User(
             name="Projetos EJ",

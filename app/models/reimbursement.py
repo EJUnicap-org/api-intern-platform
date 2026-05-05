@@ -18,11 +18,11 @@ class StatusRefundEnum(str, enum.Enum):
     CLOSED = "FINALIZADO"
 
 class TypeRefundEnum(str, enum.Enum):
-    FUEL = "COMBUSTIVEL"
-    FOOD = "ALIMENTACAO"
+    COMBUSTIVEL = "COMBUSTIVEL"
+    ALIMENTACAO = "ALIMENTACAO"
     MATERIAL = "MATERIAL"
-    OTHER = "OUTROS"
-
+    TRANSPORTE = "TRANSPORTE"
+    OUTROS = "OUTROS"
 
 class Reimbursement(Base):
     __tablename__ = "reimbursements"
@@ -30,7 +30,7 @@ class Reimbursement(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(String(1500))
-    category: Mapped[TypeRefundEnum] = mapped_column(SQLEnum(TypeRefundEnum), default=TypeRefundEnum.OTHER)
+    category: Mapped[TypeRefundEnum] = mapped_column(SQLEnum(TypeRefundEnum), default=TypeRefundEnum.OUTROS)
     value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     pix_key: Mapped[str] = mapped_column(String(32), nullable=False)
     receipt: Mapped[str] = mapped_column(String(255))

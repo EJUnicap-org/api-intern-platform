@@ -10,6 +10,8 @@ class RoleEnum(str, enum.Enum):
     ADMIN = "ADMIN"
     MANAGER = "MANAGER"
     CONSULTANT = "CONSULTANT"
+    PC = "PC"
+    EXECUTIVO = "EXECUTIVO"
 
 class User(Base):
     __tablename__ = "users"
@@ -25,3 +27,7 @@ class User(Base):
         secondary="project_members", back_populates="members"
     )
     created_by: Mapped[int | None]
+    flags: Mapped[list["UserFlag"]] = relationship(
+        "UserFlag", back_populates="user", foreign_keys="UserFlag.user_id", cascade="all, delete-orphan"
+    )
+    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="assignee")

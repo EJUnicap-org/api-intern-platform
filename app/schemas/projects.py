@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
+from typing import Optional, List
 from ..models.project import ProjectStatusEnum
 from .user import UserResponse
 
@@ -9,7 +10,7 @@ class ProjectCreate(BaseModel):
     description: str | None = Field(None, max_length=1500)
     organization_id: int | None = Field(None, gt=0)
     deadline: datetime | None = Field(None, description="data limite do projeto")
-    member_ids: list[int] = Field(..., min_length=1, description="Lista de IDs dos consultores (mínimo 1)")
+    member_ids: list[int] = Field(default_factory=list, description="Lista de IDs dos membros alocados")
 
 
 class ProjectResponse(BaseModel):
@@ -26,3 +27,9 @@ class ProjectResponse(BaseModel):
 class ProjectAllocationRequest(BaseModel):
     member_ids: list[int] = Field(..., min_length=1)
     
+class ProjectUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[ProjectStatusEnum] = None
+    organization_id: Optional[int] = None
+    member_ids: Optional[List[int]] = None

@@ -114,3 +114,36 @@ class ProjectService:
             )
 
         await db.commit()
+        
+    @staticmethod
+    async def update_project(project_id: int, project_data: ProjectCreate, db: AsyncSession):
+        """
+        Edita um projeto existente.
+        """
+        stmt_proj = select(Project).where(Project.id == project_id)
+        result_proj = await db.execute(stmt_proj)
+        project = result_proj.scalar_one_or_none()
+
+        if not project:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
+
+        if project_data.title is not None:
+            project.title = project_data.title
+        
+        if project_data.description is not None:
+        # AQUI É DESCRIPTION COM DESCRIPTION
+            project.description = project_data.description
+        
+        if project_data.organization_id is not None:
+        # AQUI É ORGANIZATION COM ORGANIZATION
+            project.organization_id = project_data.organization_id
+        
+        if project_data.status is not None:
+            project.status = project_data.status
+            
+        #project.deadline = project_data.deadline #add no futuro
+
+        #db.add(project)
+        await db.commit()
+        await db.refresh(project)
+        return project

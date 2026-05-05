@@ -35,7 +35,7 @@ class UserService:
             .outerjoin(project_members, User.id == project_members.c.user_id)
             .outerjoin(Project, and_(
                 project_members.c.project_id == Project.id,
-                Project.status == ProjectStatusEnum.EM_ANDAMENTO
+                Project.status == ProjectStatusEnum.EXECUTION
             ))
             .group_by(User.id)
             .order_by(func.count(Project.id).desc())
@@ -76,3 +76,19 @@ class UserService:
         await db.refresh(new_user)
 
         return new_user
+    
+    @staticmethod
+    async def delete_user(user_id: int, db: AsyncSession) -> bool:
+        """
+        Remove um usuário do banco de dados pelo ID.
+        """
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return False
+
+        await db.delete(user)
+        await db.commit()
+        return True

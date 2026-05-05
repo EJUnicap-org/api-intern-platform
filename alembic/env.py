@@ -3,20 +3,28 @@ import os
 from logging.config import fileConfig
 from dotenv import load_dotenv
 
+# ==============================================================================
+# 1. CARREGAMENTO DE AMBIENTE (SEMPRE PRIMEIRO)
+# ==============================================================================
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+# ==============================================================================
+# 2. IMPORTAÇÃO DOS MODELS (AGORA O .ENV JÁ FOI LIDO)
+# ==============================================================================
+from app.database import Base
+from app.models.flag import UserFlag
+
+# ==============================================================================
+# 3. CONFIGURAÇÃO DO ALEMBIC
+# ==============================================================================
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
-# 1. Carregamento Blindado do .env com Caminho Absoluto
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
-
-# 2. Importação da Base para o MetaData
-from app.database import Base
-
 config = context.config
 
-# 3. Tratamento rigoroso da URL do banco de dados
+# Tratamento rigoroso da URL do banco de dados
 db_url = os.getenv("DATABASE_URL")
 if not db_url:
     raise ValueError("CRÍTICO: A variável DATABASE_URL não foi encontrada. Verifique o arquivo .env na raiz do projeto.")
@@ -26,6 +34,7 @@ config.set_main_option("sqlalchemy.url", db_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Removido o 'Z' acidental que estava causando quebra
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:

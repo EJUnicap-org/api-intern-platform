@@ -38,6 +38,7 @@ class Project(Base):
     deadline: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="project", cascade="all, delete")
 
     # FK para a Organização (Cliente do Lead)
     organization_id: Mapped[int | None] = mapped_column(ForeignKey("organization.id"))

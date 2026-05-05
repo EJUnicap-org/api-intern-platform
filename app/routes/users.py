@@ -34,3 +34,12 @@ async def create_user(
     db: AsyncSession = Depends(get_db_session)
 ):
     return await UserService.create_user(current_user, db, user_data)
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db_session), # <-- Injeção do banco obrigatória
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER]))
+):
+    return await UserService.delete_user(user_id, db)
+

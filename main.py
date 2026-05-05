@@ -11,9 +11,13 @@ from app.database import engine, Base
 from app.utils.redis_client import redis_client
 from app.routes.auth import router as auth_router
 from app.routes.leads import router as leads_router
+from app.routes.CorporeteTransactions import router as financial_router
+from app.routes.absence import router as absence_router
 from app.routes.time_records import router as time_records_router
 from app.routes.projects import router as projects_router
 from app.routes.users import router as users_router
+from app.routes.flag_router import router as flag_router
+from app.routes.tasks import router as tasks_router
 from app.routes.files import router as files_router
 from app.routes.reimbursement import router as reimbursement_router
 
@@ -37,7 +41,9 @@ app = FastAPI(lifespan=lifespan)
 origins = [
     "http://localhost:3000",      # Padrão React
     "http://localhost:5173",      # Padrão Vite/Vue
-    "https://ej-unicap.vercel.app",  # dominio 
+    "http://localhost:5500",      # Live Server (Nome)
+    "http://127.0.0.1:5500",
+    "https://ej-unicap.vercel.app",  # dominio oficial
 ]
 
 app.add_middleware(
@@ -53,6 +59,10 @@ app.include_router(auth_router)
 app.include_router(leads_router)
 app.include_router(time_records_router)
 app.include_router(reimbursement_router)
+app.include_router(financial_router)
 app.include_router(projects_router)
+app.include_router(tasks_router)
 app.include_router(users_router)
+app.include_router(absence_router)
+app.include_router(flag_router)
 app.include_router(files_router)

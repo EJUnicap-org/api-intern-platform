@@ -7,10 +7,10 @@ from ..models.reimbursement import TypeRefundEnum, StatusRefundEnum
 class ReimbursementCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=100)
     description: str = Field(..., min_length=1, max_length=1500)
-    category: TypeRefundEnum = Field(..., description="Categoria do reembolso")
+    category: TypeRefundEnum = Field(...)
     value: Decimal = Field(..., gt=0, decimal_places=2)
     pix_key: str = Field(..., min_length=1, max_length=32)
-    file_extension: str = Field(..., description="Extensão do arquivo (ex: .pdf, .png, .jpg)")
+    file_url: str = Field(..., description="Link final do arquivo na nuvem") # <-- Isso substitui o file_extension
 
 class ReimbursementUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=100)

@@ -11,9 +11,11 @@ from ..utils.security import get_current_user, require_role
 from ..models.user import User, RoleEnum
 
 from ..schemas.riskpath import TaskInput
-from ..schemas.projects import ProjectCreate, ProjectResponse, ProjectAllocationRequest
+from ..schemas.tasks import TaskCreate
+from ..schemas.projects import ProjectCreate, ProjectResponse, ProjectAllocationRequest, ProjectUpdate
 
-from ..services.pert_service import calc_grafo_pert
+from app.services.pert_service import PertService
+from ..services.task_service import TaskService
 from ..services.project_service import ProjectService
 from ..services.pdf_service import PdfService
 
@@ -139,32 +141,6 @@ async def add_members_to_project(
             detail="Erro interno ao adicionar membros ao projeto."
         )
         
-@router.post("/diagnostic")
-async def endpoint_calcular_projeto(payload: ProjetoInput, current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])), db: AsyncSession = Depends(get_db_session)):
-    """
-    Recebe as tarefas, valida a matemática (O <= M <= P) via Pydantic,
-    e despacha o cálculo pesado de grafos para uma thread secundária.
-    """
-    if not payload.tasks:
-        raise HTTPException(status_code=400, detail="O dicionário de tarefas está vazio.")
-    
-    try:
-        # CONFRONTO CONSTRUTIVO: Aqui nós liberamos o worker do Render!
-        # O Event Loop não é bloqueado enquanto o NetworkX faz a matemática.
-        resultado_json = await asyncio.to_thread(calc_grafo_pert, payload.tasks)
-        
-        return {
-            "status": "sucesso", 
-            "dados": resultado_json
-        }
-        
-    except ValueError as e:
-        # Captura os erros de negócio (ex: dependência circular, predecessora fantasma)
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        # Falha catastrófica não prevista
-        raise HTTPException(status_code=500, detail=f"Erro interno do servidor ao processar o motor PERT: {str(e)}")
-    
 @router.patch("/{project_id}/diagnostic", status_code=status.HTTP_200_OK)
 async def endpoint_update_pert(
     project_id: int,
@@ -176,14 +152,14 @@ async def endpoint_update_pert(
         raise HTTPException(status_code=400, detail="O dicionário de tarefas está vazio.")
     
     try:
-        resultado_pert = await asyncio.to_thread(calc_grafo_pert, payload.tasks)
+        resultado_diagnostico = await asyncio.to_thread(PertService.calculate_full_diagnostic, payload.tasks)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
     stmt = (
         update(Project)
         .where(Project.id == project_id)
-        .values(pert_diagnostic=resultado_pert)
+        .values(pert_diagnostic=resultado_diagnostico)
         .returning(Project.id)
     )
     
@@ -198,7 +174,7 @@ async def endpoint_update_pert(
     return {
         "status": "sucesso",
         "mensagem": f"Diagnóstico PERT calculado e salvo com sucesso no projeto {project_id}.",
-        "dados": resultado_pert
+        "dados": resultado_diagnostico
     }
     
 @router.get("/{project_id}/diagnostic", status_code=status.HTTP_200_OK)
@@ -278,3 +254,21 @@ async def endpoint_generate_pert_pdf(
         media_type="application/pdf", 
         headers=headers
     )
+    
+@router.patch("/{project_id}/editar", status_code=status.HTTP_200_OK)
+async def endpoint_update_project(
+    project_id: int,
+    payload: ProjectUpdate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER])),
+    db: AsyncSession = Depends(get_db_session),
+):
+    return await ProjectService.update_project(project_id, payload, db)
+
+@router.post("/{project_id}/tasks", status_code=status.HTTP_201_CREATED)
+async def endpoint_create_project_task(
+    project_id: int,
+    payload: TaskCreate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER])), # Proteção RBAC
+    db: AsyncSession = Depends(get_db_session),
+):
+    return await TaskService.create_task_for_project(project_id, payload, db)

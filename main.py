@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 from app.database import engine, Base
-from app.utils.redis_client import redis_client
+# from app.utils.redis_client import redis_client #dont use REDIS, we dont have enought time and server resources to manage it, so we will just keep the code for future use
 from app.routes.auth import router as auth_router
 from app.routes.leads import router as leads_router
 from app.routes.CorporeteTransactions import router as financial_router
@@ -21,21 +21,19 @@ from app.routes.tasks import router as tasks_router
 from app.routes.files import router as files_router
 from app.routes.reimbursement import router as reimbursement_router
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # O Base.metadata.create_all() foi removido.
-    # A gestão do schema do banco de dados deve ser feita com Alembic.
-    try:
-        await redis_client.ping()
-        logger.info("Conexão com o Redis estabelecida com sucesso.")
-    except Exception as e:
-        logger.error(f"Falha ao conectar com o Redis durante a inicialização: {e}", exc_info=True)
+##@asynccontextmanager
+#async def lifespan(app: FastAPI):
+#    try:
+#        await redis_client.ping()
+#        logger.info("Conexão com o Redis estabelecida com sucesso.")
+#    except Exception as e:
+#        logger.error(f"Falha ao conectar com o Redis durante a inicialização: {e}", exc_info=True)
+#
+#    yield
+#    await redis_client.aclose()
+ #   logger.info("Conexão com o Redis fechada.")
 
-    yield
-    await redis_client.aclose()
-    logger.info("Conexão com o Redis fechada.")
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 # === CONFIGURAÇÃO DO CORS ===
 origins = [

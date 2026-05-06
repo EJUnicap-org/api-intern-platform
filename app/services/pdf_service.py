@@ -92,3 +92,86 @@ class PdfService:
             pdf.cell(30, 8, status, border=1, align="C", new_x="LMARGIN", new_y="NEXT")
         
         return bytes(pdf.output())
+    
+    
+# 1. NOVA CLASSE BASE PARA A ÁREA COMERCIAL
+class OrcamentoPDF(FPDF):
+    def header(self):
+        self.set_font("helvetica", "B", 14)
+        # Cor Primária da EJ Unicap (Indigo)
+        self.set_text_color(99, 102, 241) 
+        self.cell(0, 10, "Proposta Comercial Técnica - EJ Unicap", align="C", new_x="LMARGIN", new_y="NEXT")
+        self.ln(5)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("helvetica", "I", 8)
+        self.set_text_color(128, 128, 128)
+        self.cell(0, 10, f"Página {self.page_no()}/{{nb}}", align="C")
+
+    @staticmethod
+    def build_orcamento_pdf(orcamento_dados: dict) -> bytes:
+        pdf = OrcamentoPDF()
+        pdf.add_page()
+        
+        # Extração Segura dos Dados
+        cliente = orcamento_dados.get("cliente", "Cliente Não Informado")
+        cnpj = orcamento_dados.get("cnpj", "N/A")
+        custo_total = orcamento_dados.get("custo_total", 0.0)
+        imposto = orcamento_dados.get("imposto", 0.0)
+        preco_venda = orcamento_dados.get("preco_venda", 0.0)
+        
+        # --- BLOCO 1: IDENTIFICAÇÃO ---
+        pdf.set_font("helvetica", "B", 12)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(0, 8, "Dados da Organização", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("helvetica", "", 10)
+        pdf.cell(0, 6, f"Cliente / Lead: {cliente}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, f"CNPJ: {cnpj}", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(6)
+        
+        # --- BLOCO 2: RESUMO FINANCEIRO ---
+        pdf.set_font("helvetica", "B", 12)
+        pdf.cell(0, 8, "Resumo do Investimento", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("helvetica", "", 10)
+        
+        # Formatação para padrão monetário brasileiro (R$)
+        formata_moeda = lambda v: f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        
+        pdf.cell(0, 6, f"Custo Operacional Base: {formata_moeda(custo_total)}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, f"Previsão de Tributos: {formata_moeda(imposto)}", new_x="LMARGIN", new_y="NEXT")
+        
+        pdf.set_font("helvetica", "B", 14)
+        pdf.set_text_color(34, 197, 94) # Verde para o valor final
+        pdf.cell(0, 10, f"Valor Final da Proposta: {formata_moeda(preco_venda)}", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(6)
+        
+        # --- BLOCO 3: DETALHAMENTO DE ESCOPO (Tabela) ---
+        insumos_pessoal = orcamento_dados.get("insumos_pessoal", [])
+        
+        if insumos_pessoal:
+            pdf.set_font("helvetica", "B", 11)
+            pdf.cell(0, 8, "Detalhamento de Alocação (Equipe)", new_x="LMARGIN", new_y="NEXT")
+            
+            # Cabeçalho da Tabela
+            pdf.set_font("helvetica", "B", 9)
+            pdf.cell(100, 8, "Recurso / Cargo", border=1, align="C")
+            pdf.cell(40, 8, "Carga Horária (h)", border=1, align="C")
+            pdf.cell(40, 8, "Valor/Hora", border=1, align="C", new_x="LMARGIN", new_y="NEXT")
+            
+            # Linhas da Tabela
+            pdf.set_font("helvetica", "", 9)
+            for item in insumos_pessoal:
+                title = str(item.get("title", ""))[:45]
+                qtd = str(item.get("quantity", 0))
+                val = formata_moeda(item.get("unit_value", 0.0))
+                
+                pdf.cell(100, 8, title, border=1, align="L")
+                pdf.cell(40, 8, qtd, border=1, align="C")
+                pdf.cell(40, 8, val, border=1, align="C", new_x="LMARGIN", new_y="NEXT")
+            
+            pdf.ln(4)
+
+        # Retorna os bytes do PDF gerado
+        return bytes(pdf.output())

@@ -8,10 +8,11 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 from app.database import engine, Base
-# from app.utils.redis_client import redis_client #dont use REDIS, we dont have enought time and server resources to manage it, so we will just keep the code for future use
+# from app.utils.redis_client import redis_client #dont use REDIS, we dont have enough time and server resources to manage it, so we will just keep the code for future use
 from app.routes.auth import router as auth_router
 from app.routes.leads import router as leads_router
 from app.routes.CorporeteTransactions import router as financial_router
+from app.routes.pricing import router as pricing_router
 from app.routes.absence import router as absence_router
 from app.routes.time_records import router as time_records_router
 from app.routes.projects import router as projects_router
@@ -60,6 +61,7 @@ app.include_router(reimbursement_router)
 app.include_router(financial_router)
 app.include_router(projects_router)
 app.include_router(tasks_router)
+app.include_router(pricing_router)
 app.include_router(users_router)
 app.include_router(absence_router)
 app.include_router(flag_router)

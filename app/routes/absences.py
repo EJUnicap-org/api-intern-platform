@@ -14,20 +14,12 @@ from app.models.user import User, RoleEnum
 from app.models.absence import Absence, AbsenceStatusEnum 
 
 router = APIRouter(prefix="/absences", tags=["Faltas & Compliance"])
-
-# ==========================================
-# SCHEMAS (DTOs)
-# ==========================================
 class AbsenceCreate(BaseModel):
     absence_date: date = Field(..., description="Data da ausência")
     reason: str = Field(..., min_length=10, description="Justificativa detalhada")
 
 class AbsenceStatusUpdate(BaseModel):
     status: AbsenceStatusEnum = Field(..., description="APROVADA ou REJEITADA")
-
-# ==========================================
-# ROTAS OPERACIONAIS (Membros)
-# ==========================================
 
 @router.post("/", status_code=status.HTTP_201_CREATED, summary="Submeter justificativa de falta")
 async def create_absence(
@@ -57,13 +49,8 @@ async def get_my_absences(
     result = await db.scalars(stmt)
     return list(result.all())
 
-# ==========================================
-# ROTAS ADMINISTRATIVAS (P&C / Diretoria)
-# ==========================================
-
 @router.get("/all", summary="Painel P&C: Todas as Faltas")
 async def get_all_absences(
-    # O Cadeado: Somente o alto escalão acessa o histórico da empresa inteira
     current_admin: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.PC])), 
     db: AsyncSession = Depends(get_db_session)
 ):

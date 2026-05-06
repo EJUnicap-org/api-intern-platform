@@ -13,7 +13,7 @@ from app.routes.auth import router as auth_router
 from app.routes.leads import router as leads_router
 from app.routes.CorporeteTransactions import router as financial_router
 from app.routes.pricing import router as pricing_router
-from app.routes.absence import router as absence_router
+from app.routes.absences import router as absence_router
 from app.routes.time_records import router as time_records_router
 from app.routes.projects import router as projects_router
 from app.routes.users import router as users_router

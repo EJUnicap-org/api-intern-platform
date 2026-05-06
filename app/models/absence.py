@@ -16,6 +16,8 @@ class Absence(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     
+    user = relationship("User")
+    
     absence_date: Mapped[date] = mapped_column(Date, nullable=False)
     reason: Mapped[str] = mapped_column(String(500), nullable=False)
     

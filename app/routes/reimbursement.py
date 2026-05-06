@@ -36,17 +36,17 @@ async def list_reimbursements(
             detail="Erro interno ao recuperar reembolsos."
         )
 
-@router.post("/", response_model=ReimbursementCreateResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ReimbursementResponse, status_code=status.HTTP_201_CREATED)
 async def create_reimbursement(
     reimbursement_data: ReimbursementCreate,
-    current_user: User = Depends(get_current_user), # CONSULTOR TAMBÉM PODE PEDIR REEMBOLSO
+    current_user: User = Depends(get_current_user), 
     db: AsyncSession = Depends(get_db_session)
 ):
     try:
-        # Retorna o dicionário esperado (reembolso + URL pré-assinada)
+        # Agora o Service retorna a entidade e a rota devolve direto
         return await ReimbursementService.create_reimbursement(reimbursement_data, current_user.id, db)
     except HTTPException:
-        raise # Deixa passar as validações de extensão de arquivo (400) do Service
+        raise 
     except Exception as e:
         logger.error(f"Erro ao criar reembolso para user_id={current_user.id}: {str(e)}", exc_info=True)
         raise HTTPException(

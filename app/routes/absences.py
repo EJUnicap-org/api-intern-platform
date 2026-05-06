@@ -6,11 +6,9 @@ from sqlalchemy.orm import selectinload
 from pydantic import BaseModel, Field
 from datetime import date
 
-# Importações da sua arquitetura (Ajuste se necessário)
 from app.database import get_db_session
 from app.utils.security import get_current_user, require_role
 from app.models.user import User, RoleEnum
-# ATENÇÃO: Garanta que você criou o modelo Absence e o Enum AbsenceStatusEnum como instruí anteriormente
 from app.models.absence import Absence, AbsenceStatusEnum 
 
 router = APIRouter(prefix="/absences", tags=["Faltas & Compliance"])

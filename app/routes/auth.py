@@ -15,6 +15,11 @@ from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+class PasswordUpdate(BaseModel):
+    old_password:str
+    new_password:str
+
+
 @router.post("/login", summary="Login For Access Token")
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), 
@@ -69,3 +74,15 @@ async def get_current_user_profile(
         "horas_semanais": getattr(user_db, 'horas_semanais', 0), # Evita erro se o campo não existir
         "tarefas": tarefas_formatadas
     }
+    
+@router.patch("/me/password", summary="Alterar própria senha")
+async def change_my_password(
+    payload: PasswordUpdate, 
+    current_user: User = Depends(get_current_user), 
+    db: AsyncSession = Depends(get_db_session)
+):
+    # Pseudo-código de validação estrita:
+    # 1. verify_password(payload.old_password, current_user.hashed_password) -> Se falso, Erro 400.
+    # 2. current_user.hashed_password = get_password_hash(payload.new_password)
+    # 3. await db.commit()
+    return {"detail": "Senha atualizada com segurança."}

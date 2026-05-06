@@ -10,7 +10,15 @@ import logging
 from sqlalchemy import select
 # Importamos a Base para garantir que o Metadata esteja disponível
 from app.database import engine, AsyncSessionLocal, Base
+# --- INJEÇÃO DE CONSCIÊNCIA PARA O ALCHEMY ---
 from app.models.user import User, RoleEnum
+from app.models.flag import UserFlag
+from app.models.project import Project
+from app.models.task import Task
+from app.models.reimbursement import Reimbursement
+from app.models.time_record import ClockIn
+# ---------------------------------------------
+#from app.models.user import User, RoleEnum
 from app.utils.security import hash_password
 
 print(f"DEBUG: Conectando no banco: {os.getenv('DATABASE_URL')}")

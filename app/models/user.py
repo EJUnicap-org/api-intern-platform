@@ -6,6 +6,15 @@ from sqlalchemy import Enum as SQLEnum
 
 from ..database import Base
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.flags import UserFlag
+    from app.models.project import Project
+    from app.models.task import Task
+    from app.models.reimbursement import Reimbursement
+    from app.models.clockin import ClockIn
+
 class RoleEnum(str, enum.Enum):
     ADMIN = "ADMIN"
     MANAGER = "MANAGER"

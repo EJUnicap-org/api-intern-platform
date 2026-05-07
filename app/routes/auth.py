@@ -9,7 +9,7 @@ from ..utils.security import get_current_user
 from ..services.auth_service import login_user, logout_user
 from ..models.task import Task
 from ..models.user import User
-from ..utils.security import verify_password, get_password_hash
+from ..utils.security import verify_password, hash_password
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -80,7 +80,7 @@ async def change_my_password(
             detail="A senha atual está incorreta."
         )
     
-    current_user.hashed_password = get_password_hash(payload.new_password)
+    current_user.hashed_password = await hash_password(payload.new_password)
     
     try:
         await db.commit()

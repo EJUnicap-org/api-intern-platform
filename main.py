@@ -38,11 +38,9 @@ app = FastAPI()
 
 # === CONFIGURAÇÃO DO CORS ===
 origins = [
-    "http://localhost:3000",      # Padrão React
-    "http://localhost:5173",      # Padrão Vite/Vue
-    "http://localhost:5500",      # Live Server (Nome)
-    "http://127.0.0.1:5500",
-    "https://ej-unicap.vercel.app",  # dominio oficial
+    "https://ej-unicap.vercel.app",  # Ferramenta Interna
+    "https://ejunicap.com.br",       # Site Externo
+    "https://www.ejunicap.com.br",
 ]
 
 app.add_middleware(

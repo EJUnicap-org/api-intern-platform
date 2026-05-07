@@ -74,7 +74,7 @@ async def change_my_password(
     current_user: User = Depends(get_current_user), 
     db: AsyncSession = Depends(get_db_session)
 ):
-    if not verify_password(payload.old_password, current_user.hashed_password):
+    if not await verify_password(payload.old_password, current_user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="A senha atual está incorreta."

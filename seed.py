@@ -8,17 +8,13 @@ load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
 import asyncio
 import logging
 from sqlalchemy import select
-# Importamos a Base para garantir que o Metadata esteja disponível
 from app.database import engine, AsyncSessionLocal, Base
-# --- INJEÇÃO DE CONSCIÊNCIA PARA O ALCHEMY ---
 from app.models.user import User, RoleEnum
 from app.models.flag import UserFlag
 from app.models.project import Project
 from app.models.task import Task
 from app.models.reimbursement import Reimbursement
 from app.models.time_record import ClockIn
-# ---------------------------------------------
-#from app.models.user import User, RoleEnum
 from app.utils.security import hash_password
 
 print(f"DEBUG: Conectando no banco: {os.getenv('DATABASE_URL')}")
@@ -27,14 +23,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 async def seed_first_admin():
-    # 2. SINCRONIZAÇÃO FORÇADA: Garante que as tabelas e colunas existam antes do INSERT
     logger.info("Sincronizando modelos com o banco de dados...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # 3. EXECUÇÃO DO SEED
     async with AsyncSessionLocal() as session:
-        # Verificamos pelo email que você realmente quer usar
         target_email = "projetos@ejunicap.com.br"
         stmt = select(User).where(User.email == target_email)
         result = await session.execute(stmt)

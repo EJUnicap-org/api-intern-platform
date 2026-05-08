@@ -22,7 +22,7 @@ class ReimbursementService:
             category=data.category,
             value=data.value,
             pix_key=data.pix_key,
-            receipt=data.file_url,  # Aqui nós salvamos a URL limpa que o front-end mandou
+            receipt=data.file_url, 
             status=StatusRefundEnum.AWAITING,
             user_id=user_id
         )

@@ -16,7 +16,7 @@ router = APIRouter(prefix="/pricing", tags=["(Re)Precificar projetos"])
 @router.post("/calculate", response_model=PricingResponse)
 async def calculate_project_price(
         payload: PricingRequest,
-        current_admin: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER])),
+        current_admin: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.EXECUTIVO])),
         db: AsyncSession = Depends(get_db_session)
     ):
     total_cost = sum(item.quantity * item.unit_value for item in payload.personnel_costs)
@@ -43,7 +43,7 @@ async def calculate_project_price(
 @router.post("/export-pdf", status_code=status.HTTP_200_OK)
 async def export_pricing_pdf(
     payload: PricingExportRequest,
-    current_admin: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER])),
+    current_admin: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.EXECUTIVO])),
     db: AsyncSession = Depends(get_db_session)
 ):
     stmt = select(Organization).where(Organization.id == payload.lead_id)

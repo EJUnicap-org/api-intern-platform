@@ -17,14 +17,13 @@ router = APIRouter(prefix="/reimbursements", tags=["Reimbursements"])
 
 @router.get("/", response_model=list[ReimbursementResponse])
 async def list_reimbursements(
-    current_user: User = Depends(get_current_user), # A PORTA ESTÁ ABERTA PARA TODOS LOGADOS
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:
         stmt = select(Reimbursement).options(selectinload(Reimbursement.user))
 
-        # A LÓGICA DE ESCOPO (IDOR PREVENTED)
-        if current_user.role not in [RoleEnum.MANAGER, RoleEnum.ADMIN]:
+        if current_user.role not in [RoleEnum.MANAGER, RoleEnum.ADMIN, RoleEnum.EXECUTIVO]:
             stmt = stmt.where(Reimbursement.user_id == current_user.id)
 
         result = await db.execute(stmt)
@@ -43,7 +42,6 @@ async def create_reimbursement(
     db: AsyncSession = Depends(get_db_session)
 ):
     try:
-        # Agora o Service retorna a entidade e a rota devolve direto
         return await ReimbursementService.create_reimbursement(reimbursement_data, current_user.id, db)
     except HTTPException:
         raise 

@@ -2,7 +2,10 @@ from sqlalchemy import select
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, ConfigDict
+from datetime import datetime
+from sqlalchemy import select, and_
 
+from ..models.time_record import ClockIn, StatusClockInEnum
 from ..database import get_db_session
 from ..utils.security import require_role 
 from ..models.user import User, RoleEnum
@@ -19,17 +22,54 @@ class UserWorkloadResponse(BaseModel):
     
     user: UserResponse
     active_projects_count: int = Field(..., description="Quantidade de projetos em execução alocados")
+    
+    is_working: bool = Field(..., description="Verdadeiro se o consultor estiver com o ponto aberto")
+    current_start_time: datetime | None = Field(None, description="Horário de início do turno atual (UTC)")
 
 @router.get("/workload", response_model=list[UserWorkloadResponse])
 async def get_team_workload(
-    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN])),
-    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN, RoleEnum.PC])),
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
-    Dashboard de Capacidade: Lista todos os consultores e sua carga atual de projetos ativos.
-    Usado para decidir alocações de novas demandas.
+    Dashboard de Capacidade e Live Tracking: 
+    Lista consultores, carga de projetos e status do ponto em tempo real.
     """
-    return await UserService.get_users_workload(db)
+    # 1. Mantém a lógica original intacta (pega usuários e contagem de projetos)
+    workload_base = await UserService.get_users_workload(db)
+
+    # 2. Faz uma ÚNICA query rápida buscando apenas quem está trabalhando AGORA
+    stmt = select(ClockIn).where(
+        and_(
+            ClockIn.status == StatusClockInEnum.WORKING,
+            ClockIn.end_time.is_(None)
+        )
+    )
+    result = await db.execute(stmt)
+    pontos_abertos = result.scalars().all()
+
+    # 3. Cria um Hash Map para busca O(1) -> { user_id : start_time }
+    turnos_map = {ponto.user_id: ponto.start_time for ponto in pontos_abertos}
+
+    # 4. Mescla os dados em memória
+    lista_final = []
+    for item in workload_base:
+        # Extrai o ID do usuário de forma segura, dependendo se o seu Service retorna Objeto ou Dicionário
+        u_id = item.user.id if hasattr(item, 'user') else item['user'].id
+        
+        start_time = turnos_map.get(u_id)
+
+        lista_final.append(
+            UserWorkloadResponse(
+                user=item.user if hasattr(item, 'user') else item['user'],
+                active_projects_count=item.active_projects_count if hasattr(item, 'active_projects_count') else item['active_projects_count'],
+                is_working=(start_time is not None),
+                current_start_time=start_time
+            )
+        )
+
+    return lista_final
+
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(

@@ -14,7 +14,7 @@ from app.schemas.flag import FlagCreate, FlagResponse
 
 router = APIRouter(prefix="/users", tags=["Flags & Punições"])
 
-@router.post("/{target_user_id}/flags", response_model=FlagResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{target_user_id}/flags", status_code=status.HTTP_201_CREATED)
 async def apply_flag(
     target_user_id: int,
     flag_data: FlagCreate,
@@ -37,7 +37,7 @@ async def apply_flag(
     await db.commit()
     await db.refresh(new_flag)
     
-    return new_flag
+    return {"detail":"Bandeira aplicada com sucesso."}
 
 @router.get("/me/flags", response_model=List[FlagResponse])
 async def get_my_flags(

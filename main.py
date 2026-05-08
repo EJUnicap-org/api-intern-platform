@@ -40,9 +40,9 @@ app = FastAPI()
 origins = [
     "https://ej-unicap.vercel.app",  # Ferramenta Interna
     "https://ejunicap.com.br",       # Site Externo
-    "https://www.ejunicap.com.br"#,
-    #"http://127.0.0.1:5500",         # Live Server Local (IP)
-    #"http://localhost:5500",
+    "https://www.ejunicap.com.br",
+    "http://127.0.0.1:5500",         # Live Server Local (IP)
+    "http://localhost:5500",
 ]
 
 app.add_middleware(

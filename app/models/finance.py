@@ -37,10 +37,9 @@ class Sale(Base):
     total_value: Mapped[float] = mapped_column(Float, nullable=False)
     payment_method: Mapped[PaymentMethodEnum] = mapped_column(SQLEnum(PaymentMethodEnum), nullable=False)
     
+    receipt_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    
     date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    
-    # Rastreabilidade: quem vendeu?
     registered_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    
     registered_by = relationship("User")
     

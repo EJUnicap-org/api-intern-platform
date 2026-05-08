@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from app.models.finance import Sale
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+
 from app.database import get_db_session
 from app.utils.security import require_role
 from app.models.user import User, RoleEnum
@@ -46,4 +49,29 @@ async def register_headquarters_sale(
        "receipt_url": "https://pub-xyz.r2.dev/comprovante_pix.pdf"
     }
     """
-    pass
+    try:
+        # Transforma o JSON (payload) no objeto do banco de dados
+        nova_venda = Sale(
+            product_name=payload.product_name,
+            quantity=payload.quantity,
+            total_value=payload.total_value,
+            payment_method=payload.payment_method,
+            receipt_url=payload.receipt_url,
+            registered_by_id=current_user.id
+        )
+        
+        db.add(nova_venda)
+        await db.commit()
+        
+        # Recarrega o objeto para pegar o ID gerado pelo banco e a data
+        await db.refresh(nova_venda)
+        
+        # O retorno abaixo satisfaz o response_model=SaleResponse
+        return nova_venda
+        
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro crítico ao persistir a venda no banco: {str(e)}"
+        )

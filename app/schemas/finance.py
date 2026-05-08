@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from app.models.finance import PaymentMethodEnum
+from typing import Optional
 
 class ExpenseBase(BaseModel):
     title: str
@@ -27,10 +28,13 @@ class SaleBase(BaseModel):
     total_value: float = Field(..., gt=0)
     payment_method: PaymentMethodEnum
 
-class SaleCreate(SaleBase):
-    """O que o front-end envia no registro de venda."""
-    pass
-
+class SaleCreate(BaseModel):
+    product_name: str
+    quantity: int
+    total_value: float
+    payment_method: str
+    receipt_url: Optional[str] = None
+    
 class SaleResponse(SaleBase):
     """O que a API devolve."""
     id: int

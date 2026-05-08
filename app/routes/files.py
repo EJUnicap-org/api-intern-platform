@@ -35,7 +35,11 @@ def create_presigned_put(
 
     # Prevenção de Colisão
     safe_name = payload.file_name.replace(" ", "_")
-    unique_object_name = f"uploads/users/{current_user.id}/{uuid.uuid4().hex}_{safe_name}"
+    safe_folder = payload.folder.replace("/", "").replace(".", "").strip()
+    if not safe_folder:
+        safe_folder = "misc"
+
+    unique_object_name = f"uploads/users/{current_user.id}/{safe_folder}/{uuid.uuid4().hex}_{safe_name}"
 
     s3_client = boto3.client(
         "s3",

@@ -12,9 +12,11 @@ from app.database import engine, Base
 from app.routes.auth import router as auth_router
 from app.routes.leads import router as leads_router
 from app.routes.CorporeteTransactions import router as corp_router
+from app.routes.flight_mode import router as flight_mode_router
 from app.routes.financial import router as financial_router
 from app.routes.pricing import router as pricing_router
 from app.routes.absences import router as absence_router
+from app.routes.leave_request import router as leave_request_router
 from app.routes.time_records import router as time_records_router
 from app.routes.projects import router as projects_router
 from app.routes.users import router as users_router
@@ -66,5 +68,7 @@ app.include_router(tasks_router)
 app.include_router(pricing_router)
 app.include_router(users_router)
 app.include_router(absence_router)
+app.include_router(leave_request_router)
 app.include_router(flag_router)
+app.include_router(flight_mode_router)
 app.include_router(files_router)

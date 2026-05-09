@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from pydantic import BaseModel
 from typing import Optional
 
@@ -45,3 +46,17 @@ async def register_redbull_consumption(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao registrar consumo: {str(e)}"
         )
+      
+        
+@router.get("/redbull/me", summary="Histórico de compras do membro")
+async def get_my_sales(
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        # Busca no banco filtrando por quem está logado, do mais recente pro mais antigo
+        query = select(Sale).where(Sale.registered_by_id == current_user.id).order_by(Sale.date.desc())
+        result = await db.execute(query)
+        return result.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar histórico: {str(e)}")

@@ -11,7 +11,8 @@ from app.database import engine, Base
 # from app.utils.redis_client import redis_client #dont use REDIS, we dont have enough time and server resources to manage it, so we will just keep the code for future use
 from app.routes.auth import router as auth_router
 from app.routes.leads import router as leads_router
-from app.routes.CorporeteTransactions import router as financial_router
+from app.routes.CorporeteTransactions import router as corp_router
+from app.routes.financial import router as financial_router
 from app.routes.pricing import router as pricing_router
 from app.routes.absences import router as absence_router
 from app.routes.time_records import router as time_records_router
@@ -59,6 +60,7 @@ app.include_router(leads_router)
 app.include_router(time_records_router)
 app.include_router(reimbursement_router)
 app.include_router(financial_router)
+app.include_router(corp_router)
 app.include_router(projects_router)
 app.include_router(tasks_router)
 app.include_router(pricing_router)

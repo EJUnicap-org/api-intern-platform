@@ -1,8 +1,8 @@
-name: Backend Continue Integration
+name: Backend Integracao Continua
 
 on:
   pull_request:
-    branches: [main]
+    branches: [ "main" ]
 
 jobs:
   testes-automatizados:

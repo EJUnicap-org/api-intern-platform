@@ -80,4 +80,4 @@ A aplicação segue uma arquitetura modular com separação clara entre:
 - **Services**: Lógica de negócio
 - **Utils**: Funções auxiliares
 
-Para adicionar novas funcionalidades, siga este padrão.
+Para adicionar novas funcionalidades, siga este padrão

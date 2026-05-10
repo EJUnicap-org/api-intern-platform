@@ -75,48 +75,6 @@ async def get_team_workload(
 
     return lista_final
 
-@router.get("/{user_id}", summary="Raio-X: Obter dados de um utilizador e a sua carga de trabalho")
-async def get_user_by_id(
-    user_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
-):
-    # Fazemos o JOIN automático com Tasks e, dentro das Tasks, com o Project
-    stmt = (
-        select(User)
-        .options(
-            selectinload(User.tasks).selectinload(Task.project)
-        )
-        .where(User.id == user_id)
-    )
-    result = await db.execute(stmt)
-    user_db = result.scalar_one_or_none()
-
-    if not user_db:
-        raise HTTPException(status_code=404, detail="Utilizador não encontrado no sistema.")
-
-    # Mapeamento estrito para satisfazer o Front-end
-    tasks_formatadas = []
-    for t in user_db.tasks:
-        tasks_formatadas.append({
-            "id": t.id,
-            "title": t.title,
-            "status": t.status.value if hasattr(t.status, 'value') else t.status,
-            "due_date": t.due_date.isoformat() if t.due_date else None,
-            "project": {
-                "id": t.project.id if t.project else None,
-                "title": t.project.title if t.project else getattr(t.project, 'name', None) if t.project else None
-            } if getattr(t, 'project', None) else None
-        })
-
-    # Resposta final unificada
-    return {
-        "id": user_db.id,
-        "nome": getattr(user_db, "name", getattr(user_db, "nome", "Sem Nome")),
-        "email": user_db.email,
-        "role": user_db.role.value if hasattr(user_db.role, 'value') else user_db.role,
-        "tasks": tasks_formatadas
-    }
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
@@ -178,3 +136,46 @@ async def update_user_role(
     await db.commit()
     
     return {"message": f"Cargo atualizado para {payload.role.value} com sucesso."}
+
+@router.get("/{user_id}", summary="Raio-X: Obter dados de um utilizador e a sua carga de trabalho")
+async def get_user_by_id(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session)
+):
+    # Fazemos o JOIN automático com Tasks e, dentro das Tasks, com o Project
+    stmt = (
+        select(User)
+        .options(
+            selectinload(User.tasks).selectinload(Task.project)
+        )
+        .where(User.id == user_id)
+    )
+    result = await db.execute(stmt)
+    user_db = result.scalar_one_or_none()
+
+    if not user_db:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado no sistema.")
+
+    # Mapeamento estrito para satisfazer o Front-end
+    tasks_formatadas = []
+    for t in user_db.tasks:
+        tasks_formatadas.append({
+            "id": t.id,
+            "title": t.title,
+            "status": t.status.value if hasattr(t.status, 'value') else t.status,
+            "due_date": t.due_date.isoformat() if t.due_date else None,
+            "project": {
+                "id": t.project.id if t.project else None,
+                "title": t.project.title if t.project else getattr(t.project, 'name', None) if t.project else None
+            } if getattr(t, 'project', None) else None
+        })
+
+    # Resposta final unificada
+    return {
+        "id": user_db.id,
+        "nome": getattr(user_db, "name", getattr(user_db, "nome", "Sem Nome")),
+        "email": user_db.email,
+        "role": user_db.role.value if hasattr(user_db.role, 'value') else user_db.role,
+        "tasks": tasks_formatadas
+    }

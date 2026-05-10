@@ -3,7 +3,6 @@ from typing import List
 from fastapi import APIRouter, Depends, status, HTTPException, Response
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
 from app.database import get_db_session
@@ -13,6 +12,35 @@ from app.models.flag import UserFlag
 from app.schemas.flag import FlagCreate, FlagResponse
 
 router = APIRouter(prefix="/users", tags=["Flags & Punições"])
+
+# ==========================================
+# 1. ROTAS ESTÁTICAS (Lidas primeiro)
+# ==========================================
+
+@router.get("/me/flags", response_model=List[FlagResponse])
+async def get_my_flags(
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.CONSULTANT])),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """(Uso Geral) Retorna o histórico de bandeiras do próprio usuário."""
+    stmt = select(UserFlag).where(UserFlag.user_id == current_user.id).order_by(UserFlag.created_at.desc())
+    result = await db.scalars(stmt)
+    return list(result.all())
+
+@router.get("/flags/all", response_model=List[FlagResponse], summary="Painel de P&C: Histórico de todas as bandeiras")
+async def get_all_flags(
+    current_user: User = Depends(require_role([RoleEnum.PC, RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """(Exclusivo P&C/Admin) Retorna todas as bandeiras da EJ Unicap."""
+    stmt = select(UserFlag).options(selectinload(UserFlag.user)).order_by(UserFlag.created_at.desc())
+    result = await db.scalars(stmt)
+    return list(result.all())
+
+
+# ==========================================
+# 2. ROTAS DINÂMICAS (Com variáveis no path)
+# ==========================================
 
 @router.post("/{target_user_id}/flags", status_code=status.HTTP_201_CREATED)
 async def apply_flag(
@@ -37,30 +65,7 @@ async def apply_flag(
     await db.commit()
     await db.refresh(new_flag)
     
-    return {"detail":"Bandeira aplicada com sucesso."}
-
-@router.get("/me/flags", response_model=List[FlagResponse])
-async def get_my_flags(
-    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.CONSULTANT])),
-    db: AsyncSession = Depends(get_db_session)
-):
-    """(Uso Geral) Retorna o histórico de bandeiras do próprio usuário."""
-    stmt = select(UserFlag).where(UserFlag.user_id == current_user.id).order_by(UserFlag.created_at.desc())
-    result = await db.scalars(stmt)
-    return list(result.all())
-
-
-@router.get("/flags/all", response_model=List[FlagResponse], summary="Painel de P&C: Histórico de todas as bandeiras")
-async def get_all_flags(
-    current_user: User = Depends(require_role([RoleEnum.PC, RoleEnum.ADMIN])),
-    db: AsyncSession = Depends(get_db_session)
-):
-    """(Exclusivo P&C/Admin) Retorna todas as bandeiras da EJ Unicap."""
-    
-    stmt = select(UserFlag).options(selectinload(UserFlag.user)).order_by(UserFlag.created_at.desc())
-    result = await db.scalars(stmt)
-    
-    return list(result.all())
+    return {"detail": "Bandeira aplicada com sucesso."}
 
 @router.delete("/flags/{flag_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def revoke_flag(

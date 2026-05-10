@@ -5,4 +5,4 @@ httpx
 
 # Ferramentas de Desenvolvimento
 black       # Para formatar o código (opcional, mas recomendado)
-flake8      # Para checar erros de sintaxe (opcional)
+flake8      # Para checar erros de sintaxe (opcional) 

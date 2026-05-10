@@ -1,6 +1,6 @@
 import enum
-from datetime import datetime
-from sqlalchemy import String, Enum as SQLEnum, ForeignKey, Column, DateTime, func
+from datetime import datetime, date
+from sqlalchemy import String, Enum as SQLEnum, ForeignKey, DateTime, Date, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..database import Base
 
@@ -22,9 +22,13 @@ class Task(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=func.now()
     )
+    
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
     project: Mapped["Project"] = relationship(back_populates="tasks")
 
     assigned_to_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     assignee: Mapped["User"] = relationship(back_populates="tasks")
+    
+    

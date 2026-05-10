@@ -70,6 +70,7 @@ pytest
 - `POST /logout` - Logout
 - `POST /leads` - Criar lead
 - `GET /leads` - Listar leads
+- `Muitos outros` - olhar o /docs para saber com 100% de info sobre os endpointes
 
 ## Desenvolvimento
 

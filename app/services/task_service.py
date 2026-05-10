@@ -30,7 +30,8 @@ class TaskService:
         new_task = Task(
             title=payload.title,
             project_id=project_id,
-            assigned_to_id=payload.assigned_to_id
+            assigned_to_id=payload.assigned_to_id,
+            due_date=payload.due_date
         )
         
         db.add(new_task)

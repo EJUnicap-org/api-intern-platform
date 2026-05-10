@@ -5,9 +5,27 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
 jobs:
   testes-automatizados:
     runs-on: ubuntu-latest
+
+    # O Caminho A: Banco de Dados Real acoplado ao CI
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: user_teste
+          POSTGRES_PASSWORD: senha_falsa
+          POSTGRES_DB: banco_teste
+        ports:
+          - 5432:5432
+        # Fica testando o banco até ele estar pronto para receber conexões
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
     - name: Clonando o repositorio
@@ -23,12 +41,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-asyncio httpx
+        pip install pytest pytest-asyncio httpx alembic
 
-    - name: Executando Pytest
+    - name: Rodando Migracoes (Alembic) e Pytest
       env:
-        DATABASE_URL: "postgresql+asyncpg://postgres:senha_falsa@localhost:5432/banco_teste"
-        JWT_SECRET: "s4jK3ysWC6IOz9MjKr1YVzpPRjEFRrr7xM9ioyh0Hp2toTrfHa"
-        # Adicione aqui outras variáveis vitais que seu app/database.py ou config.py exijam
+        # A URL aponta exatamente para o serviço que criamos ali em cima
+        DATABASE_URL: "postgresql+asyncpg://user_teste:senha_falsa@localhost:5432/banco_teste"
+        JWT_SECRET: "chave_falsa_para_testes"
       run: |
+        alembic upgrade head
         pytest -v

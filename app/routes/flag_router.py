@@ -50,7 +50,7 @@ async def get_my_flags(
     return list(result.all())
 
 
-@router.get("/all", response_model=List[FlagResponse], summary="Painel de P&C: Histórico de todas as bandeiras")
+@router.get("/flags/all", response_model=List[FlagResponse], summary="Painel de P&C: Histórico de todas as bandeiras")
 async def get_all_flags(
     current_user: User = Depends(require_role([RoleEnum.PC, RoleEnum.ADMIN])),
     db: AsyncSession = Depends(get_db_session)

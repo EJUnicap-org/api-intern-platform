@@ -1,9 +1,10 @@
 name: Backend Integracao Continua
 
 on:
+  push:
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
 jobs:
   testes-automatizados:
     runs-on: ubuntu-latest

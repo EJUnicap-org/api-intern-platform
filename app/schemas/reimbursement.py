@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from decimal import Decimal
 from datetime import datetime
 from typing import Optional, Literal
@@ -10,7 +10,7 @@ class ReimbursementCreate(BaseModel):
     category: TypeRefundEnum = Field(...)
     value: Decimal = Field(..., gt=0, decimal_places=2)
     pix_key: str = Field(..., min_length=1, max_length=32)
-    file_url: str = Field(..., description="Link final do arquivo na nuvem") # <-- Isso substitui o file_extension
+    file_url: str = Field(..., description="Link final do arquivo na nuvem") 
 
 class ReimbursementUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -33,8 +33,7 @@ class ReimbursementResponse(BaseModel):
     user_id: int
     date_time: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PreSignedUrlResponse(BaseModel):
     file_extension: Literal[".pdf", ".png", ".jpg", ".jpeg"] = Field(...)

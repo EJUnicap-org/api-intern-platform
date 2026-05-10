@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from app.models.finance import PaymentMethodEnum
 from typing import Optional
@@ -19,8 +19,7 @@ class ExpenseResponse(ExpenseBase):
     date: datetime
     registered_by_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SaleBase(BaseModel):
     product_name: str
@@ -41,5 +40,4 @@ class SaleResponse(SaleBase):
     date: datetime
     registered_by_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

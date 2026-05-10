@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict, field_validator
 
 
 class OrganizationContactCreate(BaseModel):
@@ -13,14 +13,16 @@ class OrganizationCreate(BaseModel):
     status: str = Field(default="LEAD")
     contacts: list[OrganizationContactCreate] = Field(default=[])
 
-    @validator('status')
+    @field_validator('status')
+    @classmethod
     def validate_status(cls, v):
         valid_statuses = ["LEAD", "CLIENTE", "ARQUIVADO"]
         if v.upper() not in valid_statuses:
             raise ValueError(f'status deve ser um de: {valid_statuses}')
         return v.upper()
 
-    @validator('cnpj')
+    @field_validator('cnpj')
+    @classmethod
     def validate_cnpj(cls, v):
         cnpj_clean = v.replace('.', '').replace('/', '').replace('-', '')
         if not cnpj_clean.isdigit():
@@ -34,8 +36,7 @@ class OrganizationContactResponse(BaseModel):
     phone: str
     cargo: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrganizationResponse(BaseModel):
@@ -45,26 +46,28 @@ class OrganizationResponse(BaseModel):
     status: str
     contacts: list[OrganizationContactResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class StatusUpdate(BaseModel):
     """Recebe apenas o novo status para atualização de organização."""
     status: str = Field(..., description="Novo status: LEAD, CLIENTE ou ARQUIVADO")
 
-    @validator('status')
+    @field_validator('status')
+    @classmethod
     def validate_status(cls, v):
         valid_statuses = ["LEAD", "CLIENTE", "ARQUIVADO"]
         if v.upper() not in valid_statuses:
             raise ValueError(f'status deve ser um de: {valid_statuses}')
         return v.upper()
     
+
 class OrganizationUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=100)
     cnpj: str | None = Field(None, min_length=14, max_length=18)
 
-    @validator('cnpj')
+    @field_validator('cnpj')
+    @classmethod
     def validate_cnpj(cls, v):
         if v is None:
             return v 

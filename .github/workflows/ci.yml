@@ -26,5 +26,9 @@ jobs:
         pip install pytest pytest-asyncio httpx
 
     - name: Executando Pytest
+      env:
+        DATABASE_URL: "postgresql+asyncpg://postgres:senha_falsa@localhost:5432/banco_teste"
+        JWT_SECRET: "s4jK3ysWC6IOz9MjKr1YVzpPRjEFRrr7xM9ioyh0Hp2toTrfHa"
+        # Adicione aqui outras variáveis vitais que seu app/database.py ou config.py exijam
       run: |
         pytest -v

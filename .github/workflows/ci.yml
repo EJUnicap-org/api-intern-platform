@@ -1,4 +1,4 @@
-name: Backend Integracao Continua
+name: Backend Integracao Continua e Deploy
 
 on:
   push:
@@ -10,7 +10,6 @@ jobs:
   testes-automatizados:
     runs-on: ubuntu-latest
 
-    # O Caminho A: Banco de Dados Real acoplado ao CI
     services:
       postgres:
         image: postgres:15
@@ -20,7 +19,6 @@ jobs:
           POSTGRES_DB: banco_teste
         ports:
           - 5432:5432
-        # Fica testando o banco até ele estar pronto para receber conexões
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -45,9 +43,28 @@ jobs:
 
     - name: Rodando Migracoes (Alembic) e Pytest
       env:
-        # A URL aponta exatamente para o serviço que criamos ali em cima
         DATABASE_URL: "postgresql+asyncpg://user_teste:senha_falsa@localhost:5432/banco_teste"
         JWT_SECRET: "chave_falsa_para_testes"
       run: |
         alembic upgrade head
         pytest -v
+
+  # =========================================================================
+  # JOB 2: DEPLOY NA VPS (SÓ RODA SE OS TESTES PASSAREM E FOR NA MAIN)
+  # =========================================================================
+  deploy:
+    name: 🚀 Deploy para Produção
+    needs: testes-automatizados
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Conectar na VPS e Executar Script
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/ejunicap/backend
+            ./deploy.sh

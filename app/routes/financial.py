@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
+from sqlalchemy.orm import selectinload
 from typing import Optional
 
+from app.utils.security import require_role
+from app.models.user import RoleEnum
 from app.database import get_db_session
 from app.models.finance import Sale, PaymentMethodEnum
 from app.models.user import User
@@ -60,3 +63,20 @@ async def get_my_sales(
         return result.scalars().all()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar histórico: {str(e)}")
+    
+@router.get("/redbull/all", summary="Auditoria: Todas as Compras de RedBull")
+async def get_all_redbull_sales(
+    db: AsyncSession = Depends(get_db_session),
+    current_admin: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.EXECUTIVO, RoleEnum.MANAGER]))
+):
+    try:
+        query = (
+            select(Sale)
+            .where(Sale.product_name == "RedBull")
+            .options(selectinload(Sale.registered_by)) 
+            .order_by(Sale.date.desc())
+        )
+        result = await db.execute(query)
+        return result.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar auditoria: {str(e)}")

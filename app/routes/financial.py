@@ -67,8 +67,6 @@ async def get_my_sales(
 @router.get("/redbull/all", summary="Auditoria: Todas as Compras de RedBull")
 async def get_all_redbull_sales(
     db: AsyncSession = Depends(get_db_session),
-    # A MÁGICA DA SEGURANÇA: Exclusivo para Diretoria. 
-    # Ajuste os Roles de acordo com o que você usa no seu sistema (MANAGER, ADMIN, PC, etc)
     current_admin: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.EXECUTIVO, RoleEnum.MANAGER]))
 ):
     try:

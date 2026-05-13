@@ -27,7 +27,7 @@ async def get_leads_route(
     limit: int = Query(default=10, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     cnpj_filter: str | None = Query(default=None, description="Filtra por parte do CNPJ"),
-    current_user: User = Depends(require_role([RoleEnum.CONSULTANT, RoleEnum.MANAGER, RoleEnum.ADMIN])),
+    current_user: User = Depends(require_role([RoleEnum.CONSULTANT, RoleEnum.EXECUTIVO, RoleEnum.PC, RoleEnum.MANAGER, RoleEnum.ADMIN])),
     db: AsyncSession = Depends(get_db_session),
 ):
     return await get_leads(limit, offset, cnpj_filter, db)

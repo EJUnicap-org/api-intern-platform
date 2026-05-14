@@ -108,17 +108,14 @@ async def get_my_calendar(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session)
 ):
-    # 1. Busca Licenças (Férias, Redução, etc.)
     stmt_absences = select(AbsenceRequest).where(AbsenceRequest.user_id == current_user.id)
     absences = await db.scalars(stmt_absences)
     
-    # 2. Busca Reservas de Modo Avião
     stmt_flights = select(FlightMode).where(FlightMode.user_id == current_user.id)
     flights = await db.scalars(stmt_flights)
     
     calendar = []
     
-    # Normalização das Licenças
     for a in absences:
         calendar.append({
             "id": a.id,
@@ -130,7 +127,6 @@ async def get_my_calendar(
             "reason": a.reason
         })
         
-    # Normalização dos Modos Avião (Auto-aprovados)
     for f in flights:
         calendar.append({
             "id": f.id,
@@ -142,7 +138,6 @@ async def get_my_calendar(
             "reason": "Reserva Automática"
         })
         
-    # Ordenação decrescente: o que vai acontecer/aconteceu por último aparece primeiro
     calendar.sort(key=lambda x: x["start_date"], reverse=True)
     
     return calendar

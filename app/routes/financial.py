@@ -14,7 +14,6 @@ from app.utils.security import get_current_user
 
 router = APIRouter(prefix="/sales", tags=["Finance"])
 
-# Schema local para não precisar criar um arquivo novo agora
 class RedBullPurchase(BaseModel):
     quantity: int
     receipt_url: str
@@ -57,7 +56,6 @@ async def get_my_sales(
     current_user: User = Depends(get_current_user)
 ):
     try:
-        # Busca no banco filtrando por quem está logado, do mais recente pro mais antigo
         query = select(Sale).where(Sale.registered_by_id == current_user.id).order_by(Sale.date.desc())
         result = await db.execute(query)
         return result.scalars().all()

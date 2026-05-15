@@ -22,6 +22,10 @@ class TimeSummaryResponse(BaseModel):
         ..., 
         description="Verdadeiro se o consultor tiver um ponto WORKING em aberto agora."
     )
+    worked_minutes_today: int = Field(
+        0, 
+        description="Total de minutos trabalhados no dia de hoje (UTC)."
+    )
     current_start_time: datetime | None = Field(
         None, 
         description="Horário de início do turno atual (UTC). Nulo se is_working for falso."

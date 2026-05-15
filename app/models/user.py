@@ -21,6 +21,7 @@ class RoleEnum(str, enum.Enum):
     CONSULTANT = "CONSULTANT"
     PC = "PC"
     EXECUTIVO = "EXECUTIVO"
+    INSTITUCIONAL = "INSTITUCIONAL"
 
 class User(Base):
     __tablename__ = "users"

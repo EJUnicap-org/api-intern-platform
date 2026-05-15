@@ -18,12 +18,26 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-def upgrade() -> None:
-    """Upgrade schema."""
+def upgrade():
     with op.get_context().autocommit_block():
-        op.execute("ALTER TYPE roleenum ADD VALUE 'INSTITUCIONAL'")
+        op.execute("""
+        DO $$
+        BEGIN
+            -- Tenta o nome todo em minúsculo (Padrão padrão)
+            IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'roleenum') THEN
+                ALTER TYPE roleenum ADD VALUE IF NOT EXISTS 'INSTITUCIONAL';
+            
+            -- Tenta o nome com maiúsculas (Se o SQLAlchemy forçou aspas)
+            ELSIF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RoleEnum') THEN
+                ALTER TYPE "RoleEnum" ADD VALUE IF NOT EXISTS 'INSTITUCIONAL';
+            
+            -- Tenta com snake_case
+            ELSIF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role_enum') THEN
+                ALTER TYPE role_enum ADD VALUE IF NOT EXISTS 'INSTITUCIONAL';
+            END IF;
+        END
+        $$;
+        """)
 
-
-def downgrade() -> None:
-    """Downgrade schema."""
+def downgrade():
     pass

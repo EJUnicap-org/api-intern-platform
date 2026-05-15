@@ -15,7 +15,7 @@ router = APIRouter(prefix="/partners", tags=["Rede de Parceiros (PRM)"])
 @router.post("/", response_model=PartnerResponse, status_code=status.HTTP_201_CREATED)
 async def create_partner(
     payload: PartnerCreate,
-    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN, RoleEnum.EXECUTIVO])),
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.INSTITUCIONAL])),
     db: AsyncSession = Depends(get_db_session)
 ):
     """Cadastra uma nova empresa na rede de parcerias institucionais."""
@@ -43,7 +43,7 @@ async def get_partners(
 async def update_partner_status(
     partner_id: int,
     payload: PartnerStatusUpdate,
-    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN, RoleEnum.EXECUTIVO])),
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.INSTITUCIONAL])),
     db: AsyncSession = Depends(get_db_session)
 ):
     """Move o parceiro pelo funil (Recebe o gatilho de Drag and Drop do Frontend)."""
@@ -63,7 +63,7 @@ async def update_partner_status(
 async def update_partner_details(
     partner_id: int,
     payload: PartnerUpdate,
-    current_user: User = Depends(require_role([RoleEnum.MANAGER, RoleEnum.ADMIN, RoleEnum.EXECUTIVO])),
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.INSTITUCIONAL])),
     db: AsyncSession = Depends(get_db_session)
 ):
     stmt = select(Partner).where(Partner.id == partner_id)
@@ -84,7 +84,7 @@ async def update_partner_details(
 @router.delete("/{partner_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_partner(
     partner_id: int,
-    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.EXECUTIVO])),
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.INSTITUCIONAL])),
     db: AsyncSession = Depends(get_db_session)
 ):
     """Deleta um parceiro permanentemente do banco de dados (Restrito)."""

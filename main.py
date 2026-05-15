@@ -19,6 +19,7 @@ from app.routes.absences import router as absence_router
 from app.routes.leave_request import router as leave_request_router
 from app.routes.time_records import router as time_records_router
 from app.routes.projects import router as projects_router
+from app.routes.partners import router as partners_router
 from app.routes.users import router as users_router
 from app.routes.flag_router import router as flag_router
 from app.routes.tasks import router as tasks_router
@@ -64,6 +65,7 @@ app.include_router(reimbursement_router)
 app.include_router(financial_router)
 app.include_router(corp_router)
 app.include_router(projects_router)
+app.include_router(partners_router)
 app.include_router(tasks_router)
 app.include_router(pricing_router)
 app.include_router(users_router)

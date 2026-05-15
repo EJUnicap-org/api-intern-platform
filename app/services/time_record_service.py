@@ -92,21 +92,30 @@ class TimeRecordService:
 
     @staticmethod
     async def week_summary(user_id: int, db: AsyncSession) -> dict:
-        """Return summary dict for the current week (see route for Pydantic conversion)."""
+        """Return summary dict for the current week and today."""
         
         now_utc = datetime.now(timezone.utc)
         now_recife = now_utc.astimezone(RECIFE_TZ)
+        
+        # 1. Marcos de Tempo (Início da Semana e Início de Hoje)
         start_of_week_recife = (now_recife - timedelta(days=now_recife.weekday())).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
         start_of_week_utc = start_of_week_recife.astimezone(timezone.utc)
 
+        start_of_today_recife = now_recife.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        start_of_today_utc = start_of_today_recife.astimezone(timezone.utc)
+
+        # 2. Expressão Matemática do Banco
         duration_expr = (
             func.extract("epoch", ClockIn.end_time)
             - func.extract("epoch", ClockIn.start_time)
         )
 
-        stmt = select(
+        # 3. Query da Semana Inteira
+        stmt_week = select(
             func.coalesce(func.sum(duration_expr), 0).label("total_seconds")
         ).where(
             and_(
@@ -116,10 +125,25 @@ class TimeRecordService:
             )
         )
 
-        result = await db.execute(stmt)
-        total_seconds: float = result.scalar_one()
-        total_minutes = int(total_seconds // 60)
+        # 4. Query de Hoje
+        stmt_today = select(
+            func.coalesce(func.sum(duration_expr), 0).label("total_seconds")
+        ).where(
+            and_(
+                ClockIn.user_id == user_id,
+                ClockIn.status == StatusClockInEnum.FINISHED,
+                ClockIn.start_time >= start_of_today_utc,
+            )
+        )
 
+        # 5. Execução em Paralelo (ou sequencial rápida)
+        result_week = await db.execute(stmt_week)
+        total_minutes_week = int(result_week.scalar_one() // 60)
+
+        result_today = await db.execute(stmt_today)
+        total_minutes_today = int(result_today.scalar_one() // 60)
+
+        # 6. Verifica Turno Aberto Agora
         open_stmt = select(ClockIn).where(
             and_(
                 ClockIn.user_id == user_id,
@@ -129,9 +153,10 @@ class TimeRecordService:
         ).limit(1)
         open_row = (await db.execute(open_stmt)).scalar_one_or_none()
 
-        # return plain data; route will marshal into Pydantic model
+        # 7. Retorno Blindado (O Pydantic engole isso lá na rota)
         return {
-            "worked_minutes_this_week": total_minutes,
+            "worked_minutes_this_week": total_minutes_week,
+            "worked_minutes_today": total_minutes_today, # <--- AQUI ESTÁ O SANGUE NOVO
             "is_working": bool(open_row),
             "current_start_time": open_row.start_time if open_row else None,
         }

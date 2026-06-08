@@ -3,9 +3,15 @@
 Revision ID: 68c80d0a59ae
 Revises: 9fd075ec0de0
 Create Date: 2026-06-08 08:26:52.168947
-
 """
 from alembic import op
+
+# AS VARIÁVEIS OBRIGATÓRIAS DEVEM ESTAR AQUI NO ESCOPO GLOBAL
+revision = '68c80d0a59ae'
+down_revision = '9fd075ec0de0'
+branch_labels = None
+depends_on = None
+
 
 def upgrade():
     # 1. Cria a Tabela Pai

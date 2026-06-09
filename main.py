@@ -1,16 +1,24 @@
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
 import logging
+from dotenv import load_dotenv
 
-logger = logging.getLogger(__name__)
+# 1. CARREGAMENTO DE AMBIENTE (Prioridade Máxima)
 load_dotenv()
+logger = logging.getLogger(__name__)
 
+# 2. IMPORTAÇÕES DE TERCEIROS E FRAMEWORK
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+# 3. IMPORTAÇÕES LOCAIS DA APLICAÇÃO
 from app.database import engine, Base
-# from app.utils.redis_client import redis_client #dont use REDIS, we dont have enough time and server resources to manage it, so we will just keep the code for future use
+from app.routes.messages import limiter
+from app.routes.tickets import router as tickets_router
 from app.routes.auth import router as auth_router
 from app.routes.leads import router as leads_router
+from app.routes.messages import router as message_router
 from app.routes.CorporeteTransactions import router as corp_router
 from app.routes.flight_mode import router as flight_mode_router
 from app.routes.financial import router as financial_router
@@ -26,26 +34,20 @@ from app.routes.tasks import router as tasks_router
 from app.routes.files import router as files_router
 from app.routes.reimbursement import router as reimbursement_router
 
-##@asynccontextmanager
-#async def lifespan(app: FastAPI):
-#    try:
-#        await redis_client.ping()
-#        logger.info("Conexão com o Redis estabelecida com sucesso.")
-#    except Exception as e:
-#        logger.error(f"Falha ao conectar com o Redis durante a inicialização: {e}", exc_info=True)
-#
-#    yield
-#    await redis_client.aclose()
- #   logger.info("Conexão com o Redis fechada.")
+# 4. INICIALIZAÇÃO DA APLICAÇÃO
+app = FastAPI(title="API Interna EJ Unicap")
 
-app = FastAPI()
+# 5. CONFIGURAÇÃO DE SEGURANÇA E RATE LIMITING (SlowAPI)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
-# === CONFIGURAÇÃO DO CORS ===
+# 6. CONFIGURAÇÃO DO CORS
 origins = [
-    "https://ej-unicap.vercel.app",  # Ferramenta Interna
-    "https://ejunicap.com.br",       # Site Externo
+    "https://ej-unicap.vercel.app",  
+    "https://ejunicap.com.br",       
     "https://www.ejunicap.com.br",
-    "http://127.0.0.1:5500",         # Live Server Local (IP)
+    "http://127.0.0.1:5500",         
     "http://localhost:5500",
 ]
 
@@ -56,8 +58,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# ===
 
+# 7. REGISTRO DE ROTAS
 app.include_router(auth_router)
 app.include_router(leads_router)
 app.include_router(time_records_router)
@@ -69,6 +71,8 @@ app.include_router(partners_router)
 app.include_router(tasks_router)
 app.include_router(pricing_router)
 app.include_router(users_router)
+app.include_router(message_router)
+app.include_router(tickets_router)
 app.include_router(absence_router)
 app.include_router(leave_request_router)
 app.include_router(flag_router)

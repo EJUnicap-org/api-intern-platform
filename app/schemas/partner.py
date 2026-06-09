@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from app.models.partner import PartnerStatusEnum, PartnerTemperatureEnum
 
 class PartnerCreate(BaseModel):
@@ -13,8 +13,7 @@ class PartnerResponse(PartnerCreate):
     id: int
     metrificacao: str | None = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
         
 class PartnerStatusUpdate(BaseModel):
     status: PartnerStatusEnum

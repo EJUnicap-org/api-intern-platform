@@ -68,3 +68,23 @@ jobs:
           script: |
             cd /opt/ejunicap/backend
             ./deploy.sh
+      - name: 🚨 Enviar E-mail de Falha Crítica (Rollback)
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "🚨 ALERTA CRÍTICO: Falha no Deploy e Rollback (${{ github.repository }})"
+          to: projetos@ejunicap.com.br
+          from: "Bot de Deploy <${{ secrets.MAIL_USERNAME }}>"
+          body: |
+            O deploy automático falhou na VPS e o banco de dados abortou a transação.
+            O sistema executou o Rollback para a imagem anterior do Docker.
+            
+            Repositório: ${{ github.repository }}
+            Autor: ${{ github.actor }}
+            
+            Verifique os logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}

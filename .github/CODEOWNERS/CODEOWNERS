@@ -1,6 +1,6 @@
 # 1. Regra Global (Fundo do funil)
 # Tudo que não for capturado pelas regras abaixo exige a sua revisão direta.
-* @username_do_rossini
+* @rossiniroberto52
 
 # 2. Infraestrutura e Banco de Dados (Tolerância Zero)
 # Ninguém mexe nos modelos, dependências ou scripts vitais sem a aprovação do líder de back-end.

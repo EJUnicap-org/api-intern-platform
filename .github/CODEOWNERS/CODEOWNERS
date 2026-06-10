@@ -1,0 +1,17 @@
+# 1. Regra Global (Fundo do funil)
+# Tudo que não for capturado pelas regras abaixo exige a sua revisão direta.
+* @rossiniroberto52
+
+# 2. Infraestrutura e Banco de Dados (Tolerância Zero)
+# Ninguém mexe nos modelos, dependências ou scripts vitais sem a aprovação do líder de back-end.
+/app/models/        @rossiniroberto52
+/app/database.py    @rossiniroberto52
+/scripts/           @rossiniroberto52
+/tests/             @rossiniroberto52
+requirements.txt    @rossiniroberto52
+.env.example        @rossiniroberto52
+
+# 3. Rotas e Validações
+# Você pode incluir outros pares de back-end aqui para dividir a carga.
+/app/routes/        @rossiniroberto52
+/app/schemas/       @rossiniroberto52

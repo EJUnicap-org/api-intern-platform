@@ -1,11 +1,10 @@
 from pydantic import BaseModel, Field, ConfigDict
+from app.models.tickets import TicketStatus
 from typing import Optional
 from datetime import datetime
 
 class TicketCreate(BaseModel):
-    # O payload do seu teste envia "content" e "author_id"
-    content: str = Field(..., min_length=5, description="Descrição do problema")
-    author_id: int = Field(..., description="ID do autor do chamado")
+    content: str = Field(..., min_length=5, description="Descrição detalhada do problema")
 
 class TicketResponse(BaseModel):
     id: int
@@ -16,3 +15,6 @@ class TicketResponse(BaseModel):
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
+    
+class TicketStatusUpdate(BaseModel):
+    status: TicketStatus

@@ -8,7 +8,7 @@ from ..utils.security import authenticate_user
 from ..config import SECRET_KEY 
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 
+ACCESS_TOKEN_EXPIRE_MINUTES = 240
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()

@@ -8,7 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db_session
-from app.utils.security import get_current_user
+from app.utils.security import get_current_user, require_role
+from app.models.user import User, RoleEnum
 from app.models.user import User
 from app.models.message import Message
 from app.schemas.messages import MessageCreate, MessageResponse
@@ -28,18 +29,18 @@ router = APIRouter(prefix="/messages", tags=["Quadro de avisos"])
 async def post_announcement(
     request: Request,
     payload: MessageCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER])),
     db: AsyncSession = Depends(get_db_session)
 ):
     """Publica um novo aviso no geral"""
     new_message = Message(
         user_id = current_user.id,
-        content=payload.content
+        content = payload.content
     )
     db.add(new_message)
     await db.commit()
-    
-    await db.refresh(new_message, ["user"])
+    await db.refresh(new_message)
+    new_message.user = current_user
     return new_message
 
 @router.get("/", response_model=list[MessageResponse])

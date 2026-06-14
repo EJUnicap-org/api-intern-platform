@@ -14,6 +14,8 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 # ==============================================================================
 from app.database import Base
 from app.models.flag import UserFlag
+from app.models.tickets import Ticket, TicketStatus
+from app.models.message import Message
 
 # ==============================================================================
 # 3. CONFIGURAÇÃO DO ALEMBIC

@@ -1,5 +1,8 @@
 import logging
-from fpdf import FPDF
+from fpdf import FPDF 
+import json
+import hashlib
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 

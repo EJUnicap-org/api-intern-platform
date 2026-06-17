@@ -53,3 +53,16 @@ async def test_criar_chamado_formal_sucesso(client, db_session):
     assert ticket_no_banco.description == payload["content"]
     # Valida se o banco atrelou o chamado ao autor extraído pelo token JWT falso (ID 1)
     assert ticket_no_banco.author_id == 1
+
+
+@pytest.mark.asyncio
+async def test_listar_chamados_vazio(client):
+
+    app.dependency_overrides[get_current_user] = mock_current_user
+
+    response = await client.get("/tickets/")
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)

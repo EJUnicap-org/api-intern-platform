@@ -1,11 +1,9 @@
-from sqlalchemy import select
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
-from sqlalchemy import select, and_
-from sqlalchemy.orm import selectinload
-from sqlalchemy.future import select
 
 from app.models.task import Task
 from app.models.project import Project
@@ -15,6 +13,7 @@ from ..database import get_db_session
 from ..utils.security import get_current_user, require_role 
 from ..models.user import User, RoleEnum
 from ..services.user_service import UserService
+from ..services.task_service import TaskService
 from ..schemas.user import UserResponse, UserCreate
 
 router = APIRouter(prefix="/users", tags=["Users & Analytics"])
@@ -40,10 +39,8 @@ async def get_team_workload(
     Dashboard de Capacidade e Live Tracking: 
     Lista consultores, carga de projetos e status do ponto em tempo real.
     """
-    # 1. Mantém a lógica original intacta (pega usuários e contagem de projetos)
     workload_base = await UserService.get_users_workload(db)
 
-    # 2. Faz uma ÚNICA query rápida buscando apenas quem está trabalhando AGORA
     stmt = select(ClockIn).where(
         and_(
             ClockIn.status == StatusClockInEnum.WORKING,
@@ -59,7 +56,6 @@ async def get_team_workload(
     # 4. Mescla os dados em memória
     lista_final = []
     for item in workload_base:
-        # Extrai o ID do usuário de forma segura, dependendo se o seu Service retorna Objeto ou Dicionário
         u_id = item.user.id if hasattr(item, 'user') else item['user'].id
         
         start_time = turnos_map.get(u_id)
@@ -136,6 +132,26 @@ async def update_user_role(
     await db.commit()
     
     return {"message": f"Cargo atualizado para {payload.role.value} com sucesso."}
+
+@router.get("/me/tasks", summary="pegar todas as tasks atribuidos ao user")
+async def get_user_tasks(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session)
+):
+    tasks = await TaskService.get_user_tasks(current_user.id, db)
+    return [
+        {
+            "id": t.id,
+            "title": t.title,
+            "status": t.status.value,
+            "due_date": t.due_date.isoformat() if t.due_date else None,
+            "project": {
+                "id": t.project.id if t.project else None,
+                "title": t.project.title if t.project else getattr(t.project, "name", None)
+            } if getattr(t, "project", None) else None
+        }
+        for t in tasks
+    ]
 
 @router.get("/{user_id}", summary="Raio-X: Obter dados de um utilizador e a sua carga de trabalho")
 async def get_user_by_id(

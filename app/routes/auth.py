@@ -68,6 +68,7 @@ async def get_current_user_profile(
         "tarefas": tarefas_formatadas
     }
     
+    
 @router.patch("/me/password", summary="Alterar própria senha")
 async def change_my_password(
     payload: PasswordUpdate, 

@@ -7,8 +7,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, DateTime, Enum
 from datetime import datetime
 import enum
+from typing import TYPE_CHECKING
 
 from ..database import Base
+
+if TYPE_CHECKING:
+    from .user import User
 
 class StatusClockInEnum(str, enum.Enum):
     WORKING = "WORKING"

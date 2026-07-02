@@ -40,10 +40,14 @@ class OrganizationContact(Base):
     organization: Mapped["Organization"] = relationship(back_populates="contacts")
 import enum
 from datetime import datetime
+from typing import TYPE_CHECKING
 from sqlalchemy import String, Enum as SQLEnum, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
+
+if TYPE_CHECKING:
+    from .project import Project
 
 class StatusEnum(str, enum.Enum):
     LEAD = "LEAD"

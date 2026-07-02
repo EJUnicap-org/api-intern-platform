@@ -51,7 +51,7 @@ async def update_lead_status_route(
 
 async def update_organization_route(
     lead_id: int,
-    update_data: OrganizationUpdate = str | None,
+    update_data: OrganizationUpdate | None = None,
     current_user: User = Depends(require_role([RoleEnum.CONSULTANT, RoleEnum.EXECUTIVO, RoleEnum.PC, RoleEnum.MANAGER, RoleEnum.ADMIN])),
     db: AsyncSession = Depends(get_db_session)
 ):

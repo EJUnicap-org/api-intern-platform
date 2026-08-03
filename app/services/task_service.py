@@ -42,6 +42,13 @@ class TaskService:
         except Exception as e:
             await db.rollback()
             raise HTTPException(status_code=500, detail=f"Erro ao salvar tarefa: {str(e)}")
+
+    @staticmethod
+    async def get_user_tasks(user_id: int, db: AsyncSession):
+        stmt = select(Task).where(Task.assigned_to_id == user_id)
+        result = await db.execute(stmt)
+        tasks = result.scalars().all()
+        return tasks
         
     @staticmethod
     async def complete_task(task_id: int, current_user_id: int, db: AsyncSession):

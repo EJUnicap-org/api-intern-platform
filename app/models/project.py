@@ -1,10 +1,16 @@
 import enum
 from datetime import datetime
+from typing import TYPE_CHECKING
 from sqlalchemy import String, Enum as SQLEnum, ForeignKey, Table, Column, DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
+
+if TYPE_CHECKING:
+    from .task import Task
+    from .organization import Organization
+    from .user import User
 
 class ProjectStatusEnum(str, enum.Enum):
     NEGOTIATION = "NEGOCIACAO"

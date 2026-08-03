@@ -10,7 +10,8 @@ class MessageAuthorResponse(BaseModel):
     
 class MessageResponse(BaseModel):
     id: int
+    user_id: int
     content: str
     created_at: datetime
-    user: MessageAuthorResponse
+    user: MessageAuthorResponse | None = None
     model_config = ConfigDict(from_attributes=True)

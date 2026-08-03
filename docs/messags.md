@@ -18,14 +18,20 @@ POST /messages/
 ```json
 {
   "id": 42,
+  "user_id": 1,
   "content": "Aviso geral: ...",
   "created_at": "2026-06-10T09:30:00Z",
-  "user_id": 1
+  "user": {
+    "id": 1,
+    "name": "Nome do Autor"
+  }
 }
 ```
 
 GET /messages/
+- **Público**: não exige `Authorization` (o quadro carrega na primeira abertura do site).
 - Paginação obrigatória via query params: `limit` (default 20, max 50) e `offset` (default 0).
+- Cada item retorna o mesmo shape do POST (com `user_id` e `user` aninhado).
 
 ---
 

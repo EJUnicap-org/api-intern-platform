@@ -8,9 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db_session
-from app.utils.security import get_current_user, require_role
+from app.utils.security import require_role
 from app.models.user import User, RoleEnum
-from app.models.user import User
 from app.models.message import Message
 from app.schemas.messages import MessageCreate, MessageResponse
 
@@ -47,10 +46,12 @@ async def post_announcement(
 async def get_announcements(
     limit: int = Query(default=20, le=50, description="Máximo de mensagens por página"),
     offset: int = Query(default=0, ge=0),
-    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session)
 ):
-    """Retorna os avisos mais recentes. Paginação OBRIGATÓRIA."""
+    """Retorna os avisos mais recentes. Paginação OBRIGATÓRIA.
+    Público: o quadro de avisos precisa carregar na primeira abertura do site,
+    antes do token do usuário hidratar no frontend."""
+
 
     stmt = (
         select(Message)

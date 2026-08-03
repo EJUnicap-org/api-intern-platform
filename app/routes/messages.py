@@ -52,7 +52,6 @@ async def get_announcements(
     Público: o quadro de avisos precisa carregar na primeira abertura do site,
     antes do token do usuário hidratar no frontend."""
 
-
     stmt = (
         select(Message)
         .options(selectinload(Message.user))
